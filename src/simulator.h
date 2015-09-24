@@ -1,7 +1,7 @@
 #ifndef SIMULATOR_H
 #define SIMULATOR_H
 
-#include "simulation.hpp"
+#include "precompiled.h"
 #include "fields.h"
 
 namespace pl
@@ -9,73 +9,107 @@ namespace pl
 constexpr double deuterium_mass_keV = 1875612;
 constexpr double tritium_mass_keV   = 2808920.9;
 constexpr double electron_mass_keV = 510.998;
-constexpr Quantity<mps> light_speed = Quantity<mps>{ 2.9979E08 };
 
 class SimulatorData
 {
-    double m_temperature;
     Vector<meter> r;
-    Quantity<second> h;
+    Vector<mps> v0;
+    Quantity<second> h, t0, tend;
+    Quantity<kilogram> m;
+    Quantity<coulomb> q;
+    int pid;
 public:
     SimulatorData();
-
-    void setTemperature(double keV);
-    double temperature() const;
-    Vector<mps> initialVelocity(double mass_keV);
 
     void setInitialPosition(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z);
     void setInitialPosition(Vector<meter> pos);
     Vector<meter> initialPosition() const;
 
+    void setInitialVelocity(Quantity<mps> vx, Quantity<mps> vy, Quantity<mps> vz);
+    void setInitialVelocity(Vector<mps> v);
+    void setInitialVelocity(Quantity<keV> kinetic);
+    Vector<mps> initialVelocity() const;
+
     void setTimestep(Quantity<second> h);
     Quantity<second> timestep() const;
+
+    void setInitialTime(Quantity<second> t);
+    Quantity<second> initialTime() const;
+
+    void setEndTime(Quantity<second> t);
+    Quantity<second> endTime() const;
+
+    void setParticleId(int id);
+    int particleId() const;
+
+    void setMass(Quantity<kilogram> mass);
+    Quantity<kilogram> mass() const;
+
+    void setCharge(Quantity<coulomb> charge);
+    Quantity<coulomb> charge() const;
+};
+
+class Simulator;
+class Monitor
+{
+    friend class Simulator;
+    std::deque<Quantity<second>> t_buf;
+    std::deque<Vector<mps>> v_buf;
+    std::deque<Vector<meter>> r_buf;
+    std::chrono::milliseconds stall;
+    size_t buf_capacity;
+public:
+    Monitor();
+
+    void pushTime(const Quantity<second>& t);
+    void pushVelocity(const Vector<mps>& v);
+    void pushPosition(const Vector<meter>& r);
+
+    Quantity<second> pullTime();
+    Vector<mps> pullVelocity();
+    Vector<meter> pullPosition();
+
+    size_t size() const;
+    size_t capacity() const;
+    void setCapacity(size_t sz);
+
+    bool isEmpty();
+    bool isFull();
+    std::chrono::milliseconds stallTime() const;
+
+protected:
+    void setStallTime(const std::chrono::milliseconds& t);
 };
 
 class Simulator : public SimulatorData
 {
-    MotionSolver deuterium, tritium, electron;
-    size_t m_skip;
-    std::function< void(const Simulator&) > callback;
+    using RK4 = odeint::rk4< Vector<mps>, Quantity<second>, Vector<mpss> >;
+    using Derive = std::function< Vector<mpss>(const Quantity<second>& t, const Vector<mps>& v) >;
+    using MagneticField = std::function< Vector<tesla>(const Vector<meter>&) >;
+    using VelPosPair = std::pair<Vector<mps>, Vector<meter>>;
+
+    RK4 solver;
+    Derive derive;
+    MagneticField bField;
+    Quantity<second> t;
+    Vector<meter> r;
+    Vector<mps> v;
+
+    std::shared_ptr<Monitor> monitor;
 public:
     Simulator();
 
-    void setTemperature(double keV);
+    Quantity<second> time() const;
 
-    void setInitialPosition(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z);
-    void setInitialPosition(const Vector<meter>& pos);
-
-    // Facility to continue previous simulation
-    void setDeuteriumVelocity(const Vector<mps>& vel);
-    void setTritiumVelocity(const Vector<mps>& vel);
-    void setElectronVelocity(const Vector<mps>& vel);
-    void setDeuteriumPosition(const Vector<meter>& pos);
-    void setTritiumPosition(const Vector<meter>& pos);
-    void setElectronPosition(const Vector<meter>& pos);
-
-    void setMagneticField(const std::function< Vector<tesla>(Vector<meter>) > &field);
+    void setMagneticField(const MagneticField& field);
     Vector<tesla> magneticField(const Vector<meter>& pos);
     Vector<tesla> magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z);
 
-    void setSkip(size_t N);
-    size_t skip() const;
+    void run();
 
-    void runUntil(Quantity<second> t);
-    void runFor(size_t N);
-    void reset();
-
-    Quantity<second> time() const;
-    Vector<mps> deuteriumVelocity() const;
-    Vector<mps> tritiumVelocity() const;
-    Vector<mps> electronVelocity() const;
-    Vector<meter> deuteriumPosition() const;
-    Vector<meter> tritiumPosition() const;
-    Vector<meter> electronPosition() const;
-
-    void setCallback(const std::function< void(const Simulator&) >& callback);
-private:
-    void runSingleThreaded(size_t N);
-    void runMultiThreaded(size_t N);
+    std::shared_ptr<Monitor> shareMonitor();
 };
+
 } // namespace pl
 
 #endif // SIMULATOR_H

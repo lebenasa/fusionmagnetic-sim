@@ -3,25 +3,35 @@
 #include "simulator.h"
 using namespace std;
 using namespace pl;
+using namespace pl::constants;
+using namespace pl::literals;
 
+Quantity<Unit_minus<keV, Unit_plus<mps, mps>>> toKeVLightSquare(Quantity<kilogram> mass)
+{
+    return (mass / atomic_mass) * 931501.0 / square(light_speed);
+}
+
+Quantity<keV> toKeV(Quantity<kelvin> temperature)
+{
+    return temperature * (1.0 / Quantity<kelvin>{ 1.1604505E07 });
+}
+
+Quantity<kilogram> toMass(Quantity<keV> e)
+{
+    auto cnst = 931501.0 * (square(1.0_m) / square(1.0_s));
+    return (e * square(light_speed) / cnst) * atomic_mass;
+}
+
+Quantity<kelvin> toTemperature(Quantity<keV> e)
+{
+    return e * Quantity<kelvin>{ 1.1604505E07 };
+}
+
+
+// SimulatorData implementation
 SimulatorData::SimulatorData()
-    : m_temperature(15), h{ 1.0E-12 }
+    : h{ 1.0E-12 }, t0{ 0.0 }, tend{ 1.0 }
 {
-}
-
-void SimulatorData::setTemperature(double keV)
-{
-    m_temperature = keV;
-}
-
-double SimulatorData::temperature() const
-{
-    return m_temperature;
-}
-
-Vector<mps> SimulatorData::initialVelocity(double mass_keV)
-{
-    return sqrt(2.0 * m_temperature / mass_keV) * light_speed;
 }
 
 void SimulatorData::setInitialPosition(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
@@ -39,6 +49,27 @@ Vector<meter> SimulatorData::initialPosition() const
     return r;
 }
 
+void SimulatorData::setInitialVelocity(Quantity<mps> vx, Quantity<mps> vy, Quantity<mps> vz)
+{
+    v0 = Vector<mps>{ vx, vy, vz };
+}
+
+void SimulatorData::setInitialVelocity(Vector<mps> v)
+{
+    v0 = v;
+}
+
+void SimulatorData::setInitialVelocity(Quantity<keV> kinetic)
+{
+    using namespace pl::constants;
+    v0 = sqrt(2.0 * kinetic / toKeVLightSquare(m));
+}
+
+Vector<mps> SimulatorData::initialVelocity() const
+{
+    return v0;
+}
+
 void SimulatorData::setTimestep(Quantity<second> dt)
 {
     h = dt;
@@ -49,207 +80,233 @@ Quantity<second> SimulatorData::timestep() const
     return h;
 }
 
+void SimulatorData::setInitialTime(Quantity<second> time)
+{
+    if (t0 != time && time < endTime())
+        t0 = time;
+}
+
+Quantity<second> SimulatorData::initialTime() const
+{
+    return t0;
+}
+
+void SimulatorData::setEndTime(Quantity<second> t)
+{
+    if (tend != t && t > initialTime())
+        tend = t;
+}
+
+Quantity<second> SimulatorData::endTime() const
+{
+    return tend;
+}
+
+void SimulatorData::setParticleId(int id)
+{
+    using namespace pl::constants;
+    pid = id;
+    switch (id) {
+    case 0:
+        setMass(electron_mass);
+        setCharge(electron_charge);
+        break;
+    case 1:
+        setMass(neutron_mass);
+        setCharge(neutron_charge);
+        break;
+    case 2:
+        setMass(proton_mass);
+        setCharge(proton_charge);
+        break;
+    case 3:
+        setMass(deuterium_mass);
+        setCharge(deuterium_charge);
+        break;
+    case 4:
+        setMass(tritium_mass);
+        setCharge(tritium_charge);
+        break;
+    case 5:
+        setMass(alpha_mass);
+        setCharge(alpha_charge);
+        break;
+    default:
+        break;
+    }
+}
+
+int SimulatorData::particleId() const
+{
+    return pid;
+}
+
+void SimulatorData::setMass(Quantity<kilogram> mass)
+{
+    m = mass;
+    pid = -1;
+}
+
+Quantity<kilogram> SimulatorData::mass() const
+{
+    return m;
+}
+
+void SimulatorData::setCharge(Quantity<coulomb> charge)
+{
+    q = charge;
+    pid = -1;
+}
+
+Quantity<coulomb> SimulatorData::charge() const
+{
+    return q;
+}
+
+// Monitor implementation
+Monitor::Monitor()
+    : stall{ chrono::milliseconds{0} }, buf_capacity{ 100000 }
+{
+}
+
+void Monitor::pushTime(const Quantity<second> &t)
+{
+    t_buf.emplace_back(t);
+}
+
+void Monitor::pushVelocity(const Vector<mps> &v)
+{
+    v_buf.emplace_back(v);
+}
+
+void Monitor::pushPosition(const Vector<meter> &r)
+{
+    r_buf.emplace_back(r);
+}
+
+Quantity<second> Monitor::pullTime()
+{
+    auto t = t_buf.front();
+    t_buf.pop_front();
+    return t;
+}
+
+Vector<mps> Monitor::pullVelocity()
+{
+    auto v = v_buf.front();
+    v_buf.pop_front();
+    return v;
+}
+
+Vector<meter> Monitor::pullPosition()
+{
+    auto r = r_buf.front();
+    r_buf.pop_front();
+    return r;
+}
+
+size_t Monitor::size() const
+{
+    return v_buf.size();
+}
+
+size_t Monitor::capacity() const
+{
+    return buf_capacity;
+}
+
+void Monitor::setCapacity(size_t sz)
+{
+    buf_capacity = sz;
+}
+
+bool Monitor::isEmpty()
+{
+    return size() == 0;
+}
+
+bool Monitor::isFull()
+{
+    return size() >= capacity();
+}
+
+chrono::milliseconds Monitor::stallTime() const
+{
+    return stall;
+}
+
+void Monitor::setStallTime(const chrono::milliseconds &t)
+{
+    stall = t;
+}
+
+// Simulator implementation
 Simulator::Simulator()
-    : SimulatorData{ }, deuterium{ "deuterium" },
-      tritium{ "tritium" }, electron{ "electron" }, m_skip{ 1 }
+    : SimulatorData{ }
 {
-    callback = [this](const Simulator& s) { s.deuteriumPosition(); };
-}
-
-void Simulator::setTemperature(double keV)
-{
-    SimulatorData::setTemperature(keV);
-    auto phase = 90.0 / 180.0 * acos(-1);
-    auto v_de = initialVelocity(deuterium_mass_keV);
-    auto v_tr = initialVelocity(tritium_mass_keV);
-    auto v_el = initialVelocity(electron_mass_keV);
-    deuterium.setInitialVelocity(v_de.k(), phase, v_de.k());
-    tritium.setInitialVelocity(v_tr.k(), phase, v_tr.k());
-    electron.setInitialVelocity(v_el.k(), phase, v_el.k());
-}
-
-void Simulator::setInitialPosition(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
-{
-    SimulatorData::setInitialPosition(x, y, z);
-    deuterium.setInitialPosition(initialPosition());
-    tritium.setInitialPosition(initialPosition());
-    electron.setInitialPosition(initialPosition());
-}
-
-void Simulator::setInitialPosition(const Vector<meter> &pos)
-{
-    SimulatorData::setInitialPosition(pos);
-    deuterium.setInitialPosition(pos);
-    tritium.setInitialPosition(pos);
-    electron.setInitialPosition(pos);
-}
-
-void Simulator::setMagneticField(const std::function<Vector<tesla> (Vector<meter>)> & mag)
-{
-    deuterium.setMagneticField(mag);
-    tritium.setMagneticField(mag);
-    electron.setMagneticField(mag);
-}
-
-Vector<tesla> Simulator::magneticField(const Vector<meter> &pos)
-{
-    return deuterium.magneticField(pos);
-}
-
-Vector<tesla> Simulator::magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
-{
-    return deuterium.magneticField(Vector<meter>{ x, y, z });
-}
-
-void Simulator::setSkip(size_t N)
-{
-    if (N > 0) m_skip = N;
-}
-
-size_t Simulator::skip() const
-{
-    return m_skip;
-}
-
-void Simulator::runUntil(Quantity<second> t)
-{
-    size_t N = (t / timestep()).val;
-    runFor(N);
-}
-
-void Simulator::runSingleThreaded(size_t N)
-{
-    for (size_t i = 0; i < N; ++i)
+    derive = [this](const Quantity<second>& tt, const Vector<mps>& vt)
     {
-        deuterium.advance(timestep());
-        tritium.advance(timestep());
-        electron.advance(timestep());
-
-        if (i % m_skip == 0)
-        {
-            callback(*this);
-        }
-    }
-}
-
-void Simulator::runMultiThreaded(size_t N)
-{
-    for (size_t i = 0; i < N / m_skip; ++i)
-    {
-        auto fut_de = async(launch::async, [this](){ for (size_t i = 0; i < m_skip; ++i) deuterium.advance(timestep()); });
-        auto fut_tr = async(launch::async, [this](){ for (size_t i = 0; i < m_skip; ++i) tritium.advance(timestep()); });
-        auto fut_el = async(launch::async, [this](){ for (size_t i = 0; i < m_skip; ++i) electron.advance(timestep()); });
-
-        fut_de.get();
-        fut_tr.get();
-        fut_el.get();
-
-        callback(*this);
-        this_thread::sleep_for(chrono::milliseconds(1));
-    }
-}
-
-void Simulator::runFor(size_t N)
-{
-    deuterium.initSimulation();
-    tritium.initSimulation();
-    electron.initSimulation();
-    if (m_skip < 10000)
-        runSingleThreaded(N);
-    else
-        runMultiThreaded(N);
-}
-
-void Simulator::reset()
-{
-    deuterium.initSimulation();
-    tritium.initSimulation();
-    electron.initSimulation();
+        utils::unused(tt);
+        auto rt = r + (timestep() * vt);
+        auto mg = bField(rt);
+        return (charge() / mass()) * (cross(mg, vt));
+    };
+    bField = UniformField<tesla>{ };
+    monitor = make_shared<Monitor>(Monitor{});
 }
 
 Quantity<second> Simulator::time() const
 {
-    return deuterium.time();
+    return t;
 }
 
-Vector<mps> Simulator::deuteriumVelocity() const
+void Simulator::setMagneticField(const MagneticField& field)
 {
-    return deuterium.velocity();
+    bField = field;
 }
 
-Vector<mps> Simulator::tritiumVelocity() const
+Vector<tesla> Simulator::magneticField(const Vector<meter> &pos)
 {
-    return tritium.velocity();
+    return bField(pos);
 }
 
-Vector<mps> Simulator::electronVelocity() const
+Vector<tesla> Simulator::magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
 {
-    return electron.velocity();
+    return bField(Vector<meter>{ x, y, z });
 }
 
-Vector<meter> Simulator::deuteriumPosition() const
+void Simulator::run()
 {
-    return deuterium.position();
+    auto stall = chrono::milliseconds{ 10 };
+    chrono::milliseconds total_stall{ 0 };
+    auto pushData = [this]() {
+        monitor->pushTime(t);
+        monitor->pushPosition(r);
+        monitor->pushVelocity(v);
+    };
+    auto stallSimulation = [&]() {
+        while (!monitor->isEmpty())
+        {
+            this_thread::sleep_for(stall);
+            total_stall += stall;
+        }
+    };
+
+    v = initialVelocity();
+    r = initialPosition();
+    for (t = initialTime(); t < endTime(); t += timestep())
+    {
+        if (monitor->isFull())
+            stallSimulation();
+        monitor->setStallTime(total_stall);
+        pushData();
+        v = solver( t, v, timestep(), derive );
+        r = v * timestep();
+    }
+    pushData();
 }
 
-Vector<meter> Simulator::tritiumPosition() const
+shared_ptr<Monitor> Simulator::shareMonitor()
 {
-    return tritium.position();
+    return shared_ptr<Monitor>{ monitor };
 }
-
-Vector<meter> Simulator::electronPosition() const
-{
-    return electron.position();
-}
-
-void Simulator::setDeuteriumVelocity(const Vector<mps> &vel)
-{
-    deuterium.setInitialVelocity(vel);
-}
-
-void Simulator::setTritiumVelocity(const Vector<mps> &vel)
-{
-    tritium.setInitialVelocity(vel);
-}
-
-void Simulator::setElectronVelocity(const Vector<mps> &vel)
-{
-    electron.setInitialVelocity(vel);
-}
-
-void Simulator::setDeuteriumPosition(const Vector<meter> &pos)
-{
-    deuterium.setInitialPosition(pos);
-}
-
-void Simulator::setTritiumPosition(const Vector<meter> &pos)
-{
-    tritium.setInitialPosition(pos);
-}
-
-void Simulator::setElectronPosition(const Vector<meter> &pos)
-{
-    electron.setInitialPosition(pos);
-}
-
-void Simulator::setCallback(const std::function< void(const Simulator &) > &cb)
-{
-    callback = cb;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

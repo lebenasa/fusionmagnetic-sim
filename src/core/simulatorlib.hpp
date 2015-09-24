@@ -75,6 +75,13 @@ namespace pl
     {
         return std::is_same< T, dimless >::value;
     }
+
+    template < class T >
+    constexpr Enable_if< Is_unit<T>(), bool > Is_even()
+    {
+        return (T::m % 2) + (T::l % 2) + (T::t % 2) +
+                (T::k % 2) + (T::c % 2) + (T::n % 2) == 0;
+    }
     
     template < class U1, class U2 >
     struct Uplus {
@@ -93,6 +100,26 @@ namespace pl
     
     template < class U1, class U2 >
     using Unit_minus = typename Uminus<U1, U2>::type;
+
+    template < class U1, int pow >
+    struct Umultiply {
+        using type = Unit < U1::m * pow, U1::l * pow, U1::t * pow,
+        U1::k * pow, U1::c * pow, U1::n * pow >;
+    };
+
+    template < class U1, int pow >
+    using Unit_multiply = typename Umultiply<U1, pow>::type;
+
+    template < class U >
+    struct Uhalf
+    {
+        static_assert( Is_even<U>(), "Unit contains odd power" );
+        using type = Unit < U::m / 2, U::l / 2, U::t / 2,
+        U::k / 2, U::c / 2, U::n / 2 >;
+    };
+
+    template < class U >
+    using Unit_half = typename Uhalf<U>::type;
     
     using mps       = Unit_minus< meter, second >;
     using mpss      = Unit_minus< mps, second >;
@@ -255,7 +282,19 @@ namespace pl
     {
         return Quantity<Unit_plus<U, U>>{ v.val * v.val };
     }
-    
+
+    template < class U, int P >
+    Quantity<Unit_multiply<U, P>> pow(const Quantity<U>& v)
+    {
+        return Quantity<Unit_multiply<U, P>>{ std::pow(v.val, P) };
+    }
+
+    template < class U >
+    Quantity<Unit_half<U>> sqrt(const Quantity<U>& v)
+    {
+        return Quantity<Unit_half<U>>{ std::sqrt(v.val) };
+    }
+
     template < class U >
     Quantity<U> hypot(const Quantity<U>& a, const Quantity<U>& b)
     {

@@ -4,14 +4,20 @@
 #include "simulatorlib.hpp"
 #include "simulation.hpp"
 
-#include <iostream>
+#include <functional>
 #include <thread>
 #include <future>
-#include <string>
+#include <istream>
+#include <iostream>
 #include <iomanip>
+#include <string>
 #include <regex>
 #include <chrono>
+#include <ctime>
 #include <locale>
+#include <vector>
+#include <deque>
+#include <queue>
 
 #endif // PRECOMPILED_H
 

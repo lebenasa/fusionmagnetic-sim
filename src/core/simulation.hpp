@@ -42,6 +42,8 @@ namespace pl
 {
 using cpkg = Unit_minus<coulomb, kilogram>;
 using vpm = Unit_minus<volt, meter>;
+using keV = dimless;
+
 namespace constants
 {
 constexpr Quantity<kilogram>atomic_mass = Quantity<kilogram>{ 1.660566E-27 };
@@ -64,6 +66,8 @@ constexpr Quantity<cpkg>    proton_qpm = proton_charge / proton_mass;
 constexpr Quantity<cpkg>    deuterium_qpm = deuterium_charge / deuterium_mass;
 constexpr Quantity<cpkg>    tritium_qpm = tritium_charge / tritium_mass;
 constexpr Quantity<cpkg>    alpha_qpm = alpha_charge / alpha_mass;
+
+constexpr Quantity<mps> light_speed = Quantity<mps>{ 2.9979E08 };
 }   // namespace constants
 
 namespace utils {

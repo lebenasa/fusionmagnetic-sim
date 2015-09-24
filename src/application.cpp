@@ -2,178 +2,189 @@
 using namespace std;
 using namespace pl;
 using namespace pl::literals;
+using namespace pl::constants;
 
-/*!
-  * \class Application
-  * \brief Application logic of charged particle motion simulation.
-  *
-  * This is a helper class to set up Simulator from console and to print
-  * output.
-  *
-  * We provided two ways to run the simulation. The first one is by providing
-  * input file and pipe output to a file, for example:
-  *     DTESim < input.dat | output.dat
-  *
-  * The second one is using build and run approach. The whole application was
-  * solely made from standard library, so user only need most recent C++
-  * compiler (tested on GCC 4.9.2). To use build and run approach, create a
-  * pl::Simulator in main function, set it's parameter then bind it to
-  * Application class. Example:
-  * \code
-  *     #include "simulator.h"
-  *     #include "fields.h"
-  *     #include "application.h"
-  *     using namespace pl;
-  *     using namespace pl::literals;
-  *
-  *     int main()
-  *     {
-  *         Simulator sim;
-  *         sim.setTemperature(15);
-  *         sim.setSkip(10000);
-  *
-  *         SmoothZField field;
-  *         field.setBaseValue(4.7_tesla);
-  *         field.setGradientZ(0.5);
-  *         field.setGradientXY(0.5);
-  *         sim.setMagneticField(field);
-  *
-  *         Application app;
-  *         app.bindSimulator(sim);
-  *         app.writeOutputHeader();
-  *         sim.runUntil(0.001_s);
-  *         app.writeOutputFooter();
-  *
-  *         return 0;
-  *     }
-  * \endcode
-  * After building this code, run the program with:
-  *     DTESim | output.dat
-  */
-
-/*!
- * \brief Application::prepareSimulator
- * \return simulator object ready to run
- *
- * Prepares simulation through a series of standard console input query. By
- * default this function will set Simulator::callback to this object's
- * Application::writeParticleData.
- */
-Simulator Application::prepareSimulator()
+Application::Application()
+    : sim{ }, isRunning{ false }
 {
-    Simulator sim;
-    string mode;
-    cin >> mode;
-    if (regex_match(mode, regex{"[Rr]esume"}) | regex_match(mode, regex{"[Cc]ontinue"}))
-        resumeSimulation(sim);
+    monitor = sim.shareMonitor();
+}
+
+void Application::promptParticleData()
+{
+    // Particle ID:
+    // manual, e-, p+, n, De+, Tr+, He+
+    int id;
+    string name;
+    cin >> std::nouppercase >> name;
+    if (name == "manual") id = -1;
+    else if (name == "e-") id = 0;
+    else if (name == "p+") id = 1;
+    else if (name == "n") id = 2;
+    else if (name == "de+") id = 3;
+    else if (name == "tr+") id = 4;
+    else if (name == "he+") id = 5;
+    else id = -1;
+    sim.setParticleId(id);
+    if (id == -1)
+    {
+        double m, c;
+        cin >> m >> c;
+        auto mass = Quantity<kilogram>{ m };
+        auto charge = Quantity<coulomb>{ c };
+        sim.setMass(mass > 0.0_kg ? mass : 0.0_kg);
+        sim.setCharge(charge);
+    }
+
+    // Write stored parameters:
+    cout << "# Mass (m)\t\t" << sim.mass().val << " kg\n";
+    cout << "# Charge (q)\t\t" << sim.charge().val << " Coulomb\n";
+}
+
+void Application::promptInitialCondition()
+{
+    // Initial position
+    double x, y, z;
+    cin >> x >> y >> z;
+    sim.setInitialPosition(make_vector<meter>(x, y, z));
+
+    // Initial velocity
+    // Use plasma temperature? (Y/n)
+    char vel_flag;
+    cin >> std::uppercase >> vel_flag;
+    if (vel_flag == 'Y')
+    {
+        double k;
+        cin >> k;
+        sim.setInitialVelocity(Quantity<keV>{ k });
+        cout << "# Plasma temperature (Ek)\t" << k << " keV\n";
+    }
     else
-        prepareParticle(sim);
-    prepareMagneticField(sim);
-    prepareParameters(sim);
-
-    writeOutputHeader();
-
-    bindSimulator(sim);
-    return sim;
+    {
+        double vx, vy, vz;
+        cin >> vx >> vy >> vz;
+        sim.setInitialVelocity(make_vector<mps>(vx, vy, vz));
+    }
 }
 
-void Application::prepareParticle(Simulator &sim)
+void Application::promptSimulationParams()
 {
-    double a, b, c;
-    cin >> a >> b >> c;
-    sim.setInitialPosition(make_vector<meter>(a, b, c));
-    cin >> a;
-    sim.setTemperature(a);
+    // Initial time, end time and timestep
+    double t0, tend, h;
+    cin >> t0 >> tend >> h;
+    sim.setInitialTime(Quantity<second>{t0});
+    sim.setEndTime(Quantity<second>{tend});
+    sim.setTimestep(Quantity<second>{h});
 }
 
-void Application::resumeSimulation(Simulator &sim)
+void Application::promptMagneticField()
 {
-    double a, b, c;
-    cin >> a >> b >> c;
-    sim.setDeuteriumPosition(make_vector<meter>(a, b, c));
-    cin >> a >> b >> c;
-    sim.setTritiumPosition(make_vector<meter>(a, b, c));
-    cin >> a >> b >> c;
-    sim.setElectronPosition(make_vector<meter>(a, b, c));
-    cin >> a >> b >> c;
-    sim.setDeuteriumVelocity(make_vector<mps>(a, b, c));
-    cin >> a >> b >> c;
-    sim.setTritiumVelocity(make_vector<mps>(a, b, c));
-    cin >> a >> b >> c;
-    sim.setElectronVelocity(make_vector<mps>(a, b, c));
-}
-
-void Application::prepareMagneticField(Simulator &sim)
-{
+    // Field codename
     double a, b, c;
     string codename;
     cin >> codename;
+
+    // Field strength
     if (regex_match(codename, regex{"[Dd]rift"}))
     {
         GradientZField field;
         cin >> a;
         field.setBaseValue(make_quantity<tesla>(a));
-        cin >> a;
-        field.setGradient(a);
+        cin >> b;
+        field.setGradient(b);
         sim.setMagneticField(field);
+
+        cout << "# Field codename: Drift\n";
+        cout << "# Base strength\t" << a << " Tesla\n";
+        cout << "# Gradient const\t" << b << "\n";
     }
     else if (regex_match(codename, regex{"[Ss]mooth"}))
     {
         SmoothZField field;
         cin >> a;
         field.setBaseValue(make_quantity<tesla>(a));
-        cin >> a;
-        field.setGradientZ(a);
-        cin >> a;
-        field.setGradientXY(a);
+        cin >> b;
+        field.setGradientZ(b);
+        cin >> c;
+        field.setGradientXY(c);
         sim.setMagneticField(field);
+
+        cout << "# Field codename: Smooth\n";
+        cout << "# Base strength\t" << a << " Tesla\n";
+        cout << "# Parallel gradient\t" << b << "\n";
+        cout << "# Perpendicular gradient\t" << c << "\n";
     }
     else if (regex_match(codename, regex{"[Ss]harp"}))
     {
         SharpZField field;
         cin >> a;
         field.setBz0(make_quantity<tesla>(a));
-        cin >> a;
-        field.setAlpha(a);
-        cin >> a;
-        field.setBeta(a);
-        cin >> a;
-        field.setL(a);
+        cin >> b;
+        field.setAlpha(b);
+        cin >> c;
+        field.setBeta(c);
+        double d;
+        cin >> d;
+        field.setL(d);
         sim.setMagneticField(field);
+
+        cout << "# Field codename: Sharp\n";
+        cout << "# Base strength\t" << a << " Tesla\n";
+        cout << "# Alpha const\t" << b << "\n";
+        cout << "# Beta const\t" << c << "\n";
+        cout << "# Dist length (L)\t" << d << " meter\n";
     }
     else if (regex_match(codename, regex{"[Ss]ine"}))
     {
         SineZField field;
         cin >> a;
         field.setBz0(make_quantity<tesla>(a));
-        cin >> a;
-        field.setAlpha(a);
-        cin >> a;
-        field.setBetaMax(a);
-        cin >> a;
-        field.setL(a);
-        cin >> a;
-        field.setN(a);
+        cin >> b;
+        field.setAlpha(b);
+        cin >> c;
+        field.setBetaMax(c);
+        double d, e;
+        cin >> d;
+        field.setL(d);
+        cin >> e;
+        field.setN(e);
         sim.setMagneticField(field);
+
+        cout << "# Field codename: Sine\n";
+        cout << "# Base strength\t" << a << " Tesla\n";
+        cout << "# Alpha const\t" << b << "\n";
+        cout << "# Beta const\t" << c << "\n";
+        cout << "# Dist length (L)\t" << d << " meter\n";
+        cout << "# Dist freq (N)\t" << e << "\n";
     }
     else if (regex_match(codename, regex{"[Hh]elix"}))
     {
         ModHelixField field;
         cin >> a;
         field.setBz0(make_quantity<tesla>(a));
-        cin >> a;
-        field.setBteta0(make_quantity<tesla>(a));
-        cin >> a;
-        field.setAlpha(a);
-        cin >> a;
-        field.setBeta(a);
-        cin >> a;
-        field.setGamma(a);
-        cin >> a;
-        field.setL(a);
-        cin >> a;
-        field.setN(a);
+        cin >> b;
+        field.setBteta0(make_quantity<tesla>(b));
+        cin >> c;
+        field.setAlpha(c);
+        double d, e, f, g;
+        cin >> d;
+        field.setBeta(d);
+        cin >> e;
+        field.setGamma(e);
+        cin >> f;
+        field.setL(f);
+        cin >> g;
+        field.setN(g);
         sim.setMagneticField(field);
+
+        cout << "# Field codename: Helix\n";
+        cout << "# Base strength\t" << a << " Tesla\n";
+        cout << "# Poloidal strength\t" << b << " Tesla\n";
+        cout << "# Alpha const\t" << c << "\n";
+        cout << "# Beta const\t" << d << "\n";
+        cout << "# Gamma const\t" << e << "\n";
+        cout << "# Dist length (L)\t" << f << " meter\n";
+        cout << "# Dist freq (N)\t" << g << "\n";
     }
     else
     {
@@ -181,59 +192,19 @@ void Application::prepareMagneticField(Simulator &sim)
         cin >> a >> b >> c;
         field.setValue(make_vector<tesla>(a, b, c));
         sim.setMagneticField(field);
+
+        cout << "# Field codename: Homogen\n";
+        cout << "# Base strength\t{" << a << ", " << b << ", " << c
+             << "} Tesla\n";
     }
-}
-
-void Application::prepareParameters(Simulator &sim)
-{
-    double a;
-    cin >> a;
-    sim.setTimestep(make_quantity<second>(a));
-    size_t N;
-    cin >> N;
-    sim.setSkip(N);
-}
-
-void Application::bindSimulator(Simulator &sim)
-{
-    sim.setCallback([this](const Simulator& s) { writeParticleData(s); });
 }
 
 void Application::writeOutputHeader()
 {
-    cout << "# SIMULATION OF CHARGED PARTICLE MOTION WITHIN MAGNETIC FIELD\n";
-    auto date = chrono::system_clock::now();
 //    auto time = chrono::system_clock::to_time_t(date);
 //    cout << "# Started at " << std::put_time(localtime(&time), "%F %T") << "\n";
     cout << "# Output written as space separated value, with format:\n";
-    cout << "time(s) vx_D(m/s) vy_D(m/s) vz_D(m/s) vx_T(m/s) vy_T(m/s) vz_T(m/z) vx_e(m/s) vy_e(m/s) vz_e(m/s)"
-         << " x_D(m) y_D(m) z_D(m) x_T(m) y_T(m) z_T(m) x_e(m) y_e(m) z_e(m)\n";
-    started = date;
-}
-
-template< class U >
-void printVector(const Vector<U>& vec)
-{
-    cout << scientific << vec.i().val << " " << vec.j().val << " " << vec.k().val << " ";
-}
-
-void Application::writeParticleData(const Simulator &sim)
-{
-    auto vD = sim.deuteriumVelocity();
-    auto vT = sim.tritiumVelocity();
-    auto ve = sim.electronVelocity();
-    auto pD = sim.deuteriumPosition();
-    auto pT = sim.tritiumPosition();
-    auto pe = sim.electronPosition();
-
-    cout << sim.time().val << " ";
-    printVector(vD);
-    printVector(vT);
-    printVector(ve);
-    printVector(pD);
-    printVector(pT);
-    printVector(pe);
-    cout << "\n";
+    cout << "# time x y z vx vy vz computation_time\n\n";
 }
 
 void Application::writeOutputFooter()
@@ -243,4 +214,64 @@ void Application::writeOutputFooter()
 //    cout << "# Simulation ended at " << std::put_time(localtime(&time), "%F %T") << "\n";
     auto elapsed = chrono::duration_cast<chrono::milliseconds>(date - started);
     cout << "# Elapsed time: " << showpoint << elapsed.count() << " ms \n";
+    cout << "# ---  END OUTPUT  ---\n";
+}
+
+void Application::writeOutput()
+{
+    using namespace chrono;
+    using namespace this_thread;
+
+    auto waitTime = milliseconds{ 1 };
+    milliseconds total_wait{ 0 };
+
+    auto write = [&]() {
+        auto t = monitor->pullTime();
+        auto r = monitor->pullPosition();
+        auto v = monitor->pullVelocity();
+        auto elapsed = duration_cast<milliseconds>(system_clock::now() - started) -
+                total_wait - monitor->stallTime();
+//        auto elapsed = duration_cast<milliseconds>(system_clock::now() - started);
+        cout << setprecision(5) << scientific
+             << t.val << " "
+             << r.i().val << " " << r.j().val << " " << r.k().val << " "
+             << v.i().val << " " << v.j().val << " " << v.k().val << " "
+             << elapsed.count() << "\n";
+    };
+
+    while (isRunning)
+    {
+        if (monitor->isEmpty())
+        {
+            sleep_for(waitTime);
+            total_wait += waitTime;
+            continue;
+        }
+        write();
+    }
+
+    cout << "# --- END SIMULATION ---\n";
+    while (!monitor->isEmpty())
+        write();
+}
+
+void Application::exec()
+{
+    cout << "# --- BEGIN PARAMS ---\n";
+    promptParticleData();
+    promptInitialCondition();
+    promptMagneticField();
+    promptSimulationParams();
+    cout << "# ---  END PARAMS  ---\n";
+    cout << "# \n";
+    writeOutputHeader();
+    auto date = chrono::system_clock::now();
+    started = date;
+    isRunning = true;
+    cout << "# --- BEGIN SIMULATION ---\n";
+    auto writing_future = async(launch::async, [this](){ writeOutput(); });
+    sim.run();
+    isRunning = false;
+    writing_future.get();
+    writeOutputFooter();
 }

@@ -1,35 +1,30 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <istream>
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include <regex>
-#include <chrono>
-#include <ctime>
-#include <locale>
+#include "precompiled.h"
 #include "simulator.h"
 
 class Application
 {
+    pl::Simulator sim;
+    std::shared_ptr<pl::Monitor> monitor;
 public:
-    Application() = default;
-    ~Application() = default;
+    Application();
 
-    pl::Simulator prepareSimulator();
-    void writeParticleData(const pl::Simulator& simulator);
+    void exec();
 
-    void bindSimulator(pl::Simulator &sim);
+private:
+    void promptParticleData();
+    void promptInitialCondition();
+    void promptSimulationParams();
+    void promptMagneticField();
+
     void writeOutputHeader();
     void writeOutputFooter();
 
-private:
-    void prepareParticle(pl::Simulator& sim);
-    void resumeSimulation(pl::Simulator& sim);
-    void prepareMagneticField(pl::Simulator& sim);
-    void prepareParameters(pl::Simulator& sim);
+    void writeOutput();
 
+    bool isRunning;
     std::chrono::time_point<std::chrono::system_clock> started;
 };
 
