@@ -8,11 +8,39 @@ Main script: provide simple text interface to change settings and run
 simulation.
 """
 
+import os
 import argparse
-from settings import Settings
+from settings import Settings, Simulator
 from utility import formats
 
-settings = Settings()
+class Application(Simulator):
+    """Application class
+    In addition of Simulator features, this class has __execute__ method to
+    run the simulation using stored parameters. It doesn't call save when
+    destroyed, however (since JSON files are used for easy parameters sync bet-
+    ween scripts).
+    """
+    
+    def execute(self):
+        import datetime as dt
+        import subprocess as sp
+        s = Settings()
+        appin = ' '.join(self.serialize())
+        
+        if os.path.exists(s.outdir) is False:
+            os.mkdir(s.outdir)
+        
+        outfull = os.path.join(s.outdir, s.outfile)
+        if s.appendDateToOutFile:
+            outfull += dt.datetime.now().strftime('.%d.%m.%Y.%H.%M.%S.%f')
+        outfull += s.outext
+        
+        with open(outfull, 'w') as out:
+            process = sp.Popen([s.app], stdout=out, stderr=sp.PIPE,
+                               stdin=sp.PIPE, cwd=s.root)
+            stdout, stderr = process.communicate(appin)
+            print stderr
+        
 
 descstr = """
 Text interface to setup and run charged particle motion simulation.

@@ -16,7 +16,7 @@ def promptSettings():
     === EDIT DIRECTORY SETTINGS ===
     Current settings are:
     App             : {app}
-    Working folder  : {wd}
+    Root folder     : {wd}
     Output folder   : {outdir}
     Output name     : {outname}
     Extenstion      : {ext}

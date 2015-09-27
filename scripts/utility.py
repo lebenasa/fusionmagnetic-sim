@@ -38,6 +38,19 @@ def contains(string, exclude='#'):
             return True
     return False
     
+def parsable(string, exclude='#'):
+    """Check whether a string can safely parsed to number(s)
+    >>> parsable(' 1.2 5.0')
+    True
+    >>> parsable('  ')
+    False
+    >>> parsable('')
+    False
+    >>> parsable('\\n')
+    False
+    """
+    return string != '' and not contains(string, exclude) and not string.isspace()
+    
 formats = {
     'HEADER': '\033[95m',
     'OKBLUE': '\033[94m',

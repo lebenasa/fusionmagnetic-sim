@@ -36,6 +36,7 @@
 #include <type_traits>
 #include <initializer_list>
 #include <array>
+#include <vector>
 
 namespace pl 
 {
@@ -289,6 +290,11 @@ namespace pl
         return Quantity<Unit_multiply<U, P>>{ std::pow(v.val, P) };
     }
 
+    inline Quantity<dimless> pow(const Quantity<dimless>& v, double power)
+    {
+        return Quantity<dimless>{ std::pow(v.val, power) };
+    }
+
     template < class U >
     Quantity<Unit_half<U>> sqrt(const Quantity<U>& v)
     {
@@ -453,7 +459,16 @@ namespace pl
     {
         return Vector<Unit_plus<U1, U2>> { a * b.i(), a * b.j(), a * b.k() };
     }
-    
+
+    template < class U1, class U2 >
+    Vector<Unit_plus<U1, U2>> operator*(const Vector<U1>& a, const Vector<U2>& b)
+    {
+        auto i = a.i() * b.i();
+        auto j = a.j() * b.j();
+        auto k = a.k() * b.k();
+        return Vector<Unit_plus<U1, U2>>{ i, j, k };
+    }
+
     template < class U >
     Vector<Unit_minus<dimless, U>> operator/(const dec& a, const Vector<U>& b)
     {
@@ -478,6 +493,15 @@ namespace pl
         return Vector<Unit_minus<U1, U2>> { a / b.i(), a / b.j(), a / b.k() };
     }
     
+    template < class U1, class U2 >
+    Vector<Unit_minus<U1, U2>> operator/(const Vector<U1>& a, const Vector<U2>& b)
+    {
+        auto i = a.i() / b.i();
+        auto j = a.j() / b.j();
+        auto k = a.k() / b.k();
+        return Vector<Unit_minus<U1, U2>>{ i, j, k };
+    }
+
     template < class U >
     bool operator==(const Vector<U>& a, const Vector<U>& b)
     {
@@ -509,6 +533,12 @@ namespace pl
     Quantity<U> magnitude(const Vector<U>& a)
     {
         return Quantity<U>{ sqrt(dot(a, a).val) };
+    }
+
+    template < class U >
+    Vector<U> abs(const Vector<U>& a)
+    {
+        return Vector<U>{ abs(a.i()), abs(a.j()), abs(a.k()) };
     }
     
     namespace literals 

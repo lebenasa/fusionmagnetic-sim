@@ -6,7 +6,7 @@
 
 class Application
 {
-    pl::Simulator sim;
+    pl::SimulatorRK54 sim;
     std::shared_ptr<pl::Monitor> monitor;
 public:
     Application();

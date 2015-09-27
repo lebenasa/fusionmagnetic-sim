@@ -10,10 +10,14 @@ constexpr double deuterium_mass_keV = 1875612;
 constexpr double tritium_mass_keV   = 2808920.9;
 constexpr double electron_mass_keV = 510.998;
 
+class Monitor;
 class SimulatorData
 {
+    using MagneticField = std::function< Vector<tesla>(const Vector<meter>&) >;
+
     Vector<meter> r;
     Vector<mps> v0;
+    MagneticField bField;
     Quantity<second> h, t0, tend;
     Quantity<kilogram> m;
     Quantity<coulomb> q;
@@ -30,6 +34,10 @@ public:
     void setInitialVelocity(Quantity<keV> kinetic);
     Vector<mps> initialVelocity() const;
 
+    void setMagneticField(const MagneticField& field);
+    Vector<tesla> magneticField(const Vector<meter>& pos);
+    Vector<tesla> magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z);
+
     void setTimestep(Quantity<second> h);
     Quantity<second> timestep() const;
 
@@ -39,6 +47,8 @@ public:
     void setEndTime(Quantity<second> t);
     Quantity<second> endTime() const;
 
+    virtual Quantity<second> time() const = 0;
+
     void setParticleId(int id);
     int particleId() const;
 
@@ -47,12 +57,18 @@ public:
 
     void setCharge(Quantity<coulomb> charge);
     Quantity<coulomb> charge() const;
+
+    virtual void run() = 0;
+    virtual std::shared_ptr<Monitor> shareMonitor() = 0;
 };
 
 class Simulator;
+class SimulatorRK54;
 class Monitor
 {
+    friend class SimulatorData;
     friend class Simulator;
+    friend class SimulatorRK54;
     std::deque<Quantity<second>> t_buf;
     std::deque<Vector<mps>> v_buf;
     std::deque<Vector<meter>> r_buf;
@@ -84,13 +100,11 @@ protected:
 class Simulator : public SimulatorData
 {
     using RK4 = odeint::rk4< Vector<mps>, Quantity<second>, Vector<mpss> >;
-    using Derive = std::function< Vector<mpss>(const Quantity<second>& t, const Vector<mps>& v) >;
-    using MagneticField = std::function< Vector<tesla>(const Vector<meter>&) >;
+    using dvdt = std::function< Vector<mpss>(const Quantity<second>& t, const Vector<mps>& v) >;
     using VelPosPair = std::pair<Vector<mps>, Vector<meter>>;
 
     RK4 solver;
-    Derive derive;
-    MagneticField bField;
+    dvdt derive;
     Quantity<second> t;
     Vector<meter> r;
     Vector<mps> v;
@@ -101,14 +115,40 @@ public:
 
     Quantity<second> time() const;
 
-    void setMagneticField(const MagneticField& field);
-    Vector<tesla> magneticField(const Vector<meter>& pos);
-    Vector<tesla> magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z);
-
     void run();
 
     std::shared_ptr<Monitor> shareMonitor();
 };
+
+#include "rk54.h"
+
+//class SimulatorRK54 : public SimulatorData
+//{
+//    using Y = pl::Vector<pl::meter>;
+//    using Dy = pl::Vector<pl::mps>;
+//    using D2y = pl::Vector<pl::mpss>;
+//    using OdeSystem = std::tuple< Y, Dy >;
+//    using ResSystem = std::tuple< Dy, D2y >;
+//    using Derivs = std::function< ResSystem(const X&, const OdeSystem&) >;
+
+//    dvdt vderive;
+//    drdt rderive;
+//    Quantity<second> t;
+//    Vector<meter> r;
+//    Vector<mps> v;
+
+//    std::shared_ptr<Monitor> monitor;
+//public:
+//    SimulatorRK54();
+
+//    Quantity<second> time() const;
+
+//    void run();
+
+//    std::shared_ptr<Monitor> shareMonitor();
+
+//private:
+//};
 
 } // namespace pl
 

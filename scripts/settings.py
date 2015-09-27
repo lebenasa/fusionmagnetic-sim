@@ -23,7 +23,10 @@ The default value assumptions:
 import os
 import json
 
-class Settings:
+class Settings(object):
+    """Settings class
+    Stores and loads various directory used in application into JSON file
+    """
     def __init__(self):
         if (os.path.exists("settings.json")):
             self.load()
@@ -65,9 +68,13 @@ class Settings:
         self.appendDateToOutFile = True
         self.tempdir = os.path.join(self.root, "tmp")
 
-class Simulator:
+class Simulator(object):
+    """Simulator class
+    Stores and loads simulation parameters. Also has function to serialize
+    parameters as input string
+    """
     def __init__(self):
-        if os.path.exists('simulator.json'):
+        if (os.path.exists("simulator.json")):
             self.load()
     
     params = {
@@ -92,7 +99,7 @@ class Simulator:
             json.dump(self.params, f)
     
     def load(self):
-        with open('simulator.json') as f:
+        with open('simulator.json', 'r') as f:
             p = json.load(f)
             self.params = p
     

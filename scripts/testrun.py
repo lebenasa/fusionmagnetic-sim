@@ -46,7 +46,8 @@ def testRun():
         os.mkdir(tmp)
     
     with open(tmpout, 'w') as out:
-        process = sp.Popen([app], stdout=out, stderr=sp.PIPE, stdin=sp.PIPE, cwd=tmp)
+        process = sp.Popen([app], stdout=out, stderr=sp.PIPE, 
+                           stdin=sp.PIPE, cwd=tmp)
         stdout, stderr = process.communicate(params)
         print stderr
         

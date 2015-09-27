@@ -32,6 +32,7 @@ Quantity<kelvin> toTemperature(Quantity<keV> e)
 SimulatorData::SimulatorData()
     : h{ 1.0E-12 }, t0{ 0.0 }, tend{ 1.0 }
 {
+    bField = UniformField<tesla>{ };
 }
 
 void SimulatorData::setInitialPosition(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
@@ -62,12 +63,27 @@ void SimulatorData::setInitialVelocity(Vector<mps> v)
 void SimulatorData::setInitialVelocity(Quantity<keV> kinetic)
 {
     using namespace pl::constants;
-    v0 = sqrt(2.0 * kinetic / toKeVLightSquare(m));
+    v0 = Vector<mps>{ sqrt(2.0 * kinetic / toKeVLightSquare(m)) };
 }
 
 Vector<mps> SimulatorData::initialVelocity() const
 {
     return v0;
+}
+
+void SimulatorData::setMagneticField(const MagneticField& field)
+{
+    bField = field;
+}
+
+Vector<tesla> SimulatorData::magneticField(const Vector<meter> &pos)
+{
+    return bField(pos);
+}
+
+Vector<tesla> SimulatorData::magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
+{
+    return bField(Vector<meter>{ x, y, z });
 }
 
 void SimulatorData::setTimestep(Quantity<second> dt)
@@ -248,31 +264,15 @@ Simulator::Simulator()
     {
         utils::unused(tt);
         auto rt = r + (timestep() * vt);
-        auto mg = bField(rt);
+        auto mg = magneticField(rt);
         return (charge() / mass()) * (cross(mg, vt));
     };
-    bField = UniformField<tesla>{ };
     monitor = make_shared<Monitor>(Monitor{});
 }
 
 Quantity<second> Simulator::time() const
 {
     return t;
-}
-
-void Simulator::setMagneticField(const MagneticField& field)
-{
-    bField = field;
-}
-
-Vector<tesla> Simulator::magneticField(const Vector<meter> &pos)
-{
-    return bField(pos);
-}
-
-Vector<tesla> Simulator::magneticField(Quantity<meter> x, Quantity<meter> y, Quantity<meter> z)
-{
-    return bField(Vector<meter>{ x, y, z });
 }
 
 void Simulator::run()
@@ -301,7 +301,7 @@ void Simulator::run()
         monitor->setStallTime(total_stall);
         pushData();
         v = solver( t, v, timestep(), derive );
-        r = v * timestep();
+        r = r + v * timestep();
     }
     pushData();
 }
@@ -310,3 +310,77 @@ shared_ptr<Monitor> Simulator::shareMonitor()
 {
     return shared_ptr<Monitor>{ monitor };
 }
+
+// SimulatorRK54 implementation
+//SimulatorRK54::SimulatorRK54()
+//    : SimulatorData{ }
+//{
+//    vderive = [this](const Quantity<second>& tt, const Vector<mps>& vt)
+//    {
+//        utils::unused(tt);
+//        auto rt = r + (timestep() * vt);
+//        auto mg = magneticField(rt);
+//        return (charge() / mass()) * (cross(mg, vt));
+//    };
+//    rderive = [this](const T& tt, const VecR& rt)
+//    {
+//        utils::unused(tt);
+//        utils::unused(rt);
+//        return v;
+//    };
+
+//    monitor = make_shared<Monitor>(Monitor{});
+//}
+
+//Quantity<second> SimulatorRK54::time() const
+//{
+//    return t;
+//}
+
+//void SimulatorRK54::run()
+//{
+//    auto stall = chrono::milliseconds{ 10 };
+//    chrono::milliseconds total_stall{ 0 };
+//    auto pushData = [this]() {
+//        monitor->pushTime(t);
+//        monitor->pushPosition(r);
+//        monitor->pushVelocity(v);
+//    };
+//    auto stallSimulation = [&]() {
+//        while (!monitor->isEmpty())
+//        {
+//            this_thread::sleep_for(stall);
+//            total_stall += stall;
+//        }
+//    };
+
+//    v = initialVelocity();
+//    r = initialPosition();
+//    for (t = initialTime(); t < endTime(); t += timestep())
+//    {
+//        if (monitor->isFull())
+//            stallSimulation();
+//        monitor->setStallTime(total_stall);
+//        pushData();
+
+
+
+//        auto vpack = vsolver( t, v, timestep(), vderive, 1.0E-06 );
+////        rsolver.calculateK( t, r, vpack.hdid, rderive );
+//        v = vpack.y;
+////        r = rsolver.rk5(r);
+//        r = r + (vpack.hdid * v);
+//        t -= timestep();
+//        t += vpack.hdid;
+//        setTimestep(vpack.hnext);
+
+////        step();
+//    }
+//    pushData();
+
+//}
+
+//shared_ptr<Monitor> SimulatorRK54::shareMonitor()
+//{
+//    return shared_ptr<Monitor>{ monitor };
+//}
