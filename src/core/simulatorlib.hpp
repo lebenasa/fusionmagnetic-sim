@@ -144,6 +144,21 @@ namespace pl
         { 
             static_assert( Is_unit<U>(), "Quantity requires valid unit as parameter" );
         }
+
+        Quantity(const Quantity& v) : val{ v.val }
+        {
+        }
+
+        Quantity(Quantity&& v)
+        {
+            val = std::move(v.val);
+        }
+
+        Quantity& operator=(const Quantity& v)
+        {
+            val = v.val;
+            return *this;
+        }
         
         operator Conditional< Is_dimless<U>(), dec, void > () const
         {
@@ -347,7 +362,16 @@ namespace pl
     public:
         Vector() = default;
         
-        Vector(const Vector& v) = default;
+        Vector(const Vector& v) : x{ v.x }, y{ v.y } , z{ v.z }
+        {
+        }
+
+        Vector(Vector&& v)
+        {
+            x = std::move(v.x);
+            y = std::move(v.y);
+            z = std::move(v.z);
+        }
         
         Vector(const Quantity<U>& v) : x{ v }, y{ v }, z{ v }
         { }

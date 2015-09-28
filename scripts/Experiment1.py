@@ -13,23 +13,23 @@ Hypothesis:
     1   There is a timestep (h) value in which error doesn't grow (e.g. numeri-
         cally stable), this timestep is lower than gyro-period
     2   Error is a function of solely timestep*
-    
+
 * implies that magnetic field profile doesn't affect error
 
 Goals:
     1   Find the upper limit of h in which numerical stability is observed
     2   Find out whether this upper limit of h works for all kind of magnetic
         field profile
-        
+
 Workflow:
 OK  1   Simulate deuterium ion within homogen field using simulator
 OK  2   Vary timestep as factor of gyro-frequency
 OK  3   Simulate deuterium ion within homogen field using analytical solution
-    4   Write difference in value of simulator result and analytical solution
+OK  4   Write difference in value of simulator result and analytical solution
         result, this is our error
-    5   Plot error value as a function of time, the rate of error propagation
+OK  5   Plot error value as a function of time, the rate of error propagation
         is the gradient of this plot
-    6   Answer Hypothesis 1, if the hipotesis is correct, determine the optimal
+OK  6   Answer Hypothesis 1, if the hipotesis is correct, determine the optimal
         timestep and continue
     7   Using optimal timestep, do simulations for every other magnetic field
         profile
@@ -43,6 +43,7 @@ import os
 import matplotlib as mpl
 mpl.use('Qt4Agg')
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 import settings
 import magnetic as mag
@@ -60,9 +61,10 @@ class Experiment1:
     Bz0 = 4.7
     mass = 2.013553 * constants['atomic_mass']
     charge = 1.0 * constants['elementary_charge']
-    step = 0.25
+    step = 0.1
+    count = 6
     cdat = { }
-    
+
     def __init__(self):
         app = mag.Application()
         app.particleCode = 'de+'
@@ -74,22 +76,22 @@ class Experiment1:
         app.kineticEnergy = 15
         app.fieldBaseStrength = [0.0, 0.0, self.Bz0]
         app.initialTime = 0.0
-        app.endTime = 10 * self.gyro_period()
+        app.endTime = 100 * self.gyro_period()
         app.save()
         self.gen_outfiles()
-        
+
     def gyro_freq(self):
         return abs(self.charge) * self.Bz0 / self.mass
-        
+
     def gyro_period(self):
         return 1.0 / self.gyro_freq()
-        
+
     def gen_outfiles(self):
         self.outfiles = []
-        
-        for i in range(1, 11):
-            self.outfiles.append('Experiment1_{ct:0>2}'.format(ct=i))
-    
+
+        for i in range(1, self.count):
+            self.outfiles.append('FixedStep_{ct:0>2}'.format(ct=i))
+
     def execute(self):
         import os
         print 'Running simulation'
@@ -101,7 +103,7 @@ class Experiment1:
         self.prepAnalytic(app.kineticEnergy)
         anlfile = []
         simfile = []
-        for i in range(1, 11):
+        for i in range(1, self.count):
             infile = os.path.join(s.outdir, self.outfiles[i-1]) + s.outext
             outfile = os.path.join(s.outdir,
             'Analytic1_{ct:0>2}'.format(ct=i)) + s.outext
@@ -120,37 +122,37 @@ class Experiment1:
         s = settings.Settings()
         s.appendDateToOutFile = False
         s.save()
-                
-        for i in range(1, 11):
+
+        for i in range(1, self.count):
             s.outfile = self.outfiles[i-1]
             s.save()
             app.timeStep = i * self.step * self.gyro_period()
             app.execute()
-    
+
     def prepAnalytic(self, kineticEnergy):
         self.cdat['v0'] = [self.meterPerSecond(kineticEnergy) for i in range(3)]
         self.cdat['phase'] = np.arctan(self.cdat['v0'][1] / self.cdat['v0'][0])
         self.cdat['vr'] = np.hypot(self.cdat['v0'][0], self.cdat['v0'][1])
-            
+
     def analytic(self, t):
         """Gives analytic position for charged particle in homogen field at
         a particular time
         """
         app = mag.Application()
-        
+
         v0 = self.cdat['v0']
         phase = self.cdat['phase']
         vr = self.cdat['vr']
         rl = vr / self.gyro_freq()
         sign = np.sign(self.charge)
-        
+
         xg = app.x0 + rl * np.sin(phase)
         yg = app.y0 - rl * np.cos(phase)
         xt = xg + rl * np.sin(self.gyro_freq() * t + (-1.0 * sign) * phase)
         yt = yg + sign * rl * np.cos(self.gyro_freq() * t + (-1.0 * sign) * phase)
         zt = app.z0 + v0[2] * t
         return [xt, yt, zt]
-        
+
     def calculateAnalytic(self, fin, fout):
         """Calculate analytic solution for given simulation result file fin
         """
@@ -163,13 +165,13 @@ class Experiment1:
             for t in tlist:
                 x, y, z = self.analytic(t)
                 writer.writerow([t, x, y, z])
-                
+
     def calculateDifference(self, fsim, fanl, fout):
         import csv
         xsim, ysim, zsim = [None, None, None]
         xanl, yanl, zanl = [None, None, None]
         tlist = None
-        
+
         with open(fsim) as f:
             xsim, ysim, zsim = putil.extractData(f, [1, 2, 3])
             xsim = np.array(xsim)
@@ -182,39 +184,39 @@ class Experiment1:
             xanl = np.array(xanl)
             yanl = np.array(yanl)
             zanl = np.array(zanl)
-        
+
         rsim = np.hypot(xsim, ysim)
         ranl = np.hypot(xanl, yanl)
-        rerr = (np.abs(ranl - rsim) / ranl)# / len(ranl)
+        rerr = np.abs(ranl - rsim) / ranl# / len(ranl)
         zerr = np.abs(zanl - zsim) / zanl  # / len(zanl)
         rerr = np.cumsum(rerr)
         zerr = np.cumsum(zerr)
-        
+
         with open(fout, 'w') as f:
             writer = csv.writer(f, delimiter=' ')
             for i in xrange(len(tlist)):
                 writer.writerow([tlist[i], rerr[i], zerr[i]])
-                
+
     def errorPlots(self):
         """Plot errors to answer hypothesis
         """
         s = settings.Settings()
-        for i in range(1, 11):
+        for i in range(1, self.count):
             errfile = os.path.join(s.outdir,
             'Error1_{ct:0>2}'.format(ct=i)) + s.outext
             with open(errfile) as f:
                 t, r, z = putil.extractData(f, [0, 1, 2])
                 r = np.array(r)
                 z = np.array(z)
-                t = np.array(t) * 1.0E+5
+                t = np.array(t)
                 plt.plot(t, r, '--', label='{step} $\\tau_c$'.format(step=i*self.step))
-        plt.xlabel('Time ($\\times10^5$ s)')
+        plt.xlabel('Time (s)')
         plt.ylabel('Error Accumulation')
-        plt.legend(loc=2, ncol=2)
+        plt.legend(loc=2, ncol=2, framealpha=0.5)
         plt.tight_layout()
         plt.show()
-        
-    def plotSuperimposed(self, fsims, fanl):        
+
+    def plotSuperimposed(self, fsims, fanl):
         for i in range(len(fsims)):
             with open(fsims[i]) as f:
                 t, x, y, z = putil.extractData(f, [0, 1, 2, 3])
@@ -222,43 +224,28 @@ class Experiment1:
                 y = np.array(y)
                 r = np.hypot(x, y)
                 plt.plot(z, r, '-o', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
-                
+
         with open(fanl) as f:
             t, x, y, z = putil.extractData(f, [0, 1, 2, 3])
             x = np.array(x)
             y = np.array(y)
             r = np.hypot(x, y)
             plt.plot(z, r, 'k-', linewidth=1.5, label='Analytic')
-            
+
         plt.xlabel('z (m)')
         plt.ylabel('R (m)')
-        plt.legend(ncol=3, loc=4)
+        plt.legend(ncol=self.count / 3, loc=4, framealpha=0.5)
         plt.tight_layout()
         plt.show()
-    
+
     def meterPerSecond(self, keV):
         return np.sqrt(2.0 * keV / self.toKeVLightSquare(self.mass))
-    
+
     def toKeVLightSquare(self, mass):
         return (self.mass / constants['atomic_mass']) * 931501.0 /\
         constants['light_speed']**2
 
+
 if __name__ == '__main__':
     app = Experiment1()
     app.execute()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

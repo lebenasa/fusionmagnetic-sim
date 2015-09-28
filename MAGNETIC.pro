@@ -1,7 +1,7 @@
 TEMPLATE = app
 QT -= core gui
 TARGET = magnetic
-CONFIG += c++11 precompile_header
+CONFIG += c++14 precompile_header
 
 INCLUDEPATH += src/core/
 

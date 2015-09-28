@@ -67,6 +67,9 @@ class Settings(object):
         self.outext = ".csv"
         self.appendDateToOutFile = True
         self.tempdir = os.path.join(self.root, "tmp")
+        
+    def outpath(self):
+        return os.path.join(self.outdir, self.outfile) + self.outext
 
 class Simulator(object):
     """Simulator class

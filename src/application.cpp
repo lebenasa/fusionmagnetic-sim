@@ -13,7 +13,7 @@ Application::Application()
 void Application::promptParticleData()
 {
     // Particle ID:
-    // manual, e-, p+, n, De+, Tr+, He+
+//     manual, e-, p+, n, De+, Tr+, He+
     int id;
     string name;
     cin >> std::nouppercase >> name;
@@ -226,9 +226,12 @@ void Application::writeOutput()
     milliseconds total_wait{ 0 };
 
     auto write = [&]() {
+        mutex m;
+        m.lock();
         auto t = monitor->pullTime();
         auto r = monitor->pullPosition();
         auto v = monitor->pullVelocity();
+        m.unlock();
         auto elapsed = duration_cast<milliseconds>(system_clock::now() - started) -
                 total_wait - monitor->stallTime();
 //        auto elapsed = duration_cast<milliseconds>(system_clock::now() - started);
@@ -255,6 +258,7 @@ void Application::writeOutput()
         write();
 }
 
+#ifndef __TEST__
 void Application::exec()
 {
     cout << "# --- BEGIN PARAMS ---\n";
@@ -271,7 +275,44 @@ void Application::exec()
     cout << "# --- BEGIN SIMULATION ---\n";
     auto writing_future = async(launch::async, [this](){ writeOutput(); });
     sim.run();
+    mutex m;
+    m.lock();
     isRunning = false;
+    cerr << "Monitor use count: " << monitor.use_count() << "\n";
+    m.unlock();
     writing_future.get();
     writeOutputFooter();
 }
+
+#else
+void Application::exec()
+{
+    sim.setParticleId(3);
+    sim.setInitialPosition(make_vector<meter>( 6.0, 6.0, 0.3));
+    sim.setInitialVelocity(Quantity<keV>{15});
+//    UniformField<tesla> field;
+//    field.setValue(make_vector<tesla>(0.0, 0.0, 4.7));
+//    sim.setMagneticField(field);
+    ModHelixField field;
+    field.setBz0(make_quantity<tesla>(4.7));
+    field.setBteta0(make_quantity<tesla>(2.0));
+    field.setAlpha(0.8);
+    field.setBeta(0.2);
+    field.setGamma(0.5);
+    field.setL(1.0);
+    field.setN(1.0);
+    sim.setMagneticField(field);
+
+    sim.setInitialTime(0.0_s);
+    sim.setEndTime(1.0E-04_s);
+    sim.setTimestep(1.0E-09_s);
+    auto date = chrono::system_clock::now();
+    started = date;
+    isRunning = true;
+    auto writing_future = async(launch::async, [this](){ writeOutput(); });
+    sim.run();
+    isRunning = false;
+    writing_future.get();
+}
+
+#endif

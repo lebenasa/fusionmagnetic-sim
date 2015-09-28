@@ -3,6 +3,7 @@
 
 #include "precompiled.h"
 #include "fields.h"
+#include "rk54.h"
 
 namespace pl
 {
@@ -69,11 +70,11 @@ class Monitor
     friend class SimulatorData;
     friend class Simulator;
     friend class SimulatorRK54;
+    std::chrono::milliseconds stall;
+    size_t buf_capacity, t_count, v_count, r_count;
     std::deque<Quantity<second>> t_buf;
     std::deque<Vector<mps>> v_buf;
     std::deque<Vector<meter>> r_buf;
-    std::chrono::milliseconds stall;
-    size_t buf_capacity;
 public:
     Monitor();
 
@@ -120,35 +121,37 @@ public:
     std::shared_ptr<Monitor> shareMonitor();
 };
 
-#include "rk54.h"
+class SimulatorRK54 : public SimulatorData
+{
+    using X = Quantity<second>;
+    using Y = Vector<meter>;
+    using Dy = Vector<mps>;
+    using D2y = Vector<mpss>;
+    using OdeSystem = std::tuple< Y, Dy >;
+    using ResSystem = std::tuple< Dy, D2y >;
+    using Derivs = std::function< ResSystem(const X&, const OdeSystem&) >;
 
-//class SimulatorRK54 : public SimulatorData
-//{
-//    using Y = pl::Vector<pl::meter>;
-//    using Dy = pl::Vector<pl::mps>;
-//    using D2y = pl::Vector<pl::mpss>;
-//    using OdeSystem = std::tuple< Y, Dy >;
-//    using ResSystem = std::tuple< Dy, D2y >;
-//    using Derivs = std::function< ResSystem(const X&, const OdeSystem&) >;
+    odeint::RK54 solver;
+    Derivs derive;
+    X t;
+    Y r;
+    Dy v;
 
-//    dvdt vderive;
-//    drdt rderive;
-//    Quantity<second> t;
-//    Vector<meter> r;
-//    Vector<mps> v;
+    std::shared_ptr<Monitor> monitor;
+public:
+    SimulatorRK54();
 
-//    std::shared_ptr<Monitor> monitor;
-//public:
-//    SimulatorRK54();
+    Quantity<second> time() const;
 
-//    Quantity<second> time() const;
+    void run();
 
-//    void run();
+    std::shared_ptr<Monitor> shareMonitor();
 
-//    std::shared_ptr<Monitor> shareMonitor();
+protected:
+    virtual ResSystem equations(const X& t, const OdeSystem& y);
 
-//private:
-//};
+private:
+};
 
 } // namespace pl
 

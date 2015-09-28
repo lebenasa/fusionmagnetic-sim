@@ -8,25 +8,18 @@ DATE=`date +%Y.%m.%d.%H.%M.%S`
 CASE=HomogenField
 OUTLST=$OUTDIR/$CASE-$DATE.dat
 
-mkdir $OUTDIR
+# mkdir $OUTDIR
 
-grep -v '#' << END_INPUT | $LM >& $OUTLST
-# Job string, anything but Resume or Continue will start a fresh simulation
-Simulate
-# Initial particle position [x y z] (m)
-0.0 0.0 0.0
-# Plasma temperature (keV)
-15
-# Magnetic field string
-Homogen
-# Magnetic field strength [Bx By Bz] (Tesla)
-0.0 0.0 4.7
-# Timestep (second)
-1.0E-13
-# Sample skip, will write result after N times
-10000
-# Total iteration in this simulation session
-1000000
+grep -v '#' << END_INPUT | $LM #>& $OUTLST
+de+             # Particle codename
+0.0 0.0 0.0     # Initial position (m)
+Y               # Y: Initial velocity in keV instead of m/s
+15              # Plasma temperature (keV)
+# n             # Another example
+# 1.0 1.0 1.0   # Initial velocity (m/s)
+Homogen         # Magnetic field codename
+4.7 0.0 0.0     # Magnetic field strength (Tesla)
+0.0             # Initial time (s)
+1.0E-04         # End time (s)
+1.0E-09         # Timestep (s)
 END_INPUT
-
-

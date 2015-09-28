@@ -27,7 +27,6 @@ Quantity<kelvin> toTemperature(Quantity<keV> e)
     return e * Quantity<kelvin>{ 1.1604505E07 };
 }
 
-
 // SimulatorData implementation
 SimulatorData::SimulatorData()
     : h{ 1.0E-12 }, t0{ 0.0 }, tend{ 1.0 }
@@ -88,7 +87,8 @@ Vector<tesla> SimulatorData::magneticField(Quantity<meter> x, Quantity<meter> y,
 
 void SimulatorData::setTimestep(Quantity<second> dt)
 {
-    h = dt;
+    if (dt > 0.0_s)
+        h = dt;
 }
 
 Quantity<second> SimulatorData::timestep() const
@@ -181,43 +181,52 @@ Quantity<coulomb> SimulatorData::charge() const
 
 // Monitor implementation
 Monitor::Monitor()
-    : stall{ chrono::milliseconds{0} }, buf_capacity{ 100000 }
+    : stall{ chrono::milliseconds{0} }, buf_capacity{ 500000 }
 {
 }
 
 void Monitor::pushTime(const Quantity<second> &t)
 {
-    t_buf.emplace_back(t);
+    t_buf.push_back(t);
 }
 
 void Monitor::pushVelocity(const Vector<mps> &v)
 {
-    v_buf.emplace_back(v);
+    v_buf.push_back(v);
 }
 
 void Monitor::pushPosition(const Vector<meter> &r)
 {
-    r_buf.emplace_back(r);
+    r_buf.push_back(r);
 }
 
 Quantity<second> Monitor::pullTime()
 {
     auto t = t_buf.front();
+    mutex m;
+    m.lock();
     t_buf.pop_front();
+    m.unlock();
     return t;
 }
 
 Vector<mps> Monitor::pullVelocity()
 {
     auto v = v_buf.front();
+    mutex m;
+    m.lock();
     v_buf.pop_front();
+    m.unlock();
     return v;
 }
 
 Vector<meter> Monitor::pullPosition()
 {
     auto r = r_buf.front();
+    mutex m;
+    m.lock();
     r_buf.pop_front();
+    m.unlock();
     return r;
 }
 
@@ -308,79 +317,89 @@ void Simulator::run()
 
 shared_ptr<Monitor> Simulator::shareMonitor()
 {
-    return shared_ptr<Monitor>{ monitor };
+    return shared_ptr<Monitor>( monitor );
 }
 
 // SimulatorRK54 implementation
-//SimulatorRK54::SimulatorRK54()
-//    : SimulatorData{ }
-//{
-//    vderive = [this](const Quantity<second>& tt, const Vector<mps>& vt)
-//    {
-//        utils::unused(tt);
-//        auto rt = r + (timestep() * vt);
-//        auto mg = magneticField(rt);
-//        return (charge() / mass()) * (cross(mg, vt));
-//    };
-//    rderive = [this](const T& tt, const VecR& rt)
-//    {
-//        utils::unused(tt);
-//        utils::unused(rt);
-//        return v;
-//    };
+SimulatorRK54::SimulatorRK54()
+    : SimulatorData{ }, monitor{ new Monitor }
+{
+    derive = [this](const X& t, const OdeSystem& y){
+        utils::unused(t);
+        auto vt = std::get<1>(y);
+        auto rt = r + (timestep() * vt);
+        auto mg = magneticField(rt);
+        auto drdt = vt;
+        auto dvdt = (charge() / mass()) * (cross(vt, mg));
+        return ResSystem{ drdt, dvdt };
+    };
+}
 
-//    monitor = make_shared<Monitor>(Monitor{});
-//}
+SimulatorRK54::ResSystem SimulatorRK54::equations(const X &t, const OdeSystem &y)
+{
+    utils::unused(t);
+    auto vt = std::get<1>(y);
+    auto rt = r + (timestep() * vt);
+    auto mg = magneticField(rt);
+    auto drdt = vt;
+    auto dvdt = (charge() / mass()) * (cross(vt, mg));
+    return ResSystem{ drdt, dvdt };
+}
 
-//Quantity<second> SimulatorRK54::time() const
-//{
-//    return t;
-//}
+Quantity<second> SimulatorRK54::time() const
+{
+    return t;
+}
 
-//void SimulatorRK54::run()
-//{
-//    auto stall = chrono::milliseconds{ 10 };
-//    chrono::milliseconds total_stall{ 0 };
-//    auto pushData = [this]() {
-//        monitor->pushTime(t);
-//        monitor->pushPosition(r);
-//        monitor->pushVelocity(v);
-//    };
-//    auto stallSimulation = [&]() {
-//        while (!monitor->isEmpty())
-//        {
-//            this_thread::sleep_for(stall);
-//            total_stall += stall;
-//        }
-//    };
+void SimulatorRK54::run()
+{
+    auto stall = chrono::milliseconds{ 10 };
+    chrono::milliseconds total_stall{ 0 };
+    auto pushData = [this]() {
+        mutex m;
+        m.lock();
+        monitor->pushTime(t);
+        monitor->pushPosition(r);
+        monitor->pushVelocity(v);
+        m.unlock();
+    };
+    auto stallSimulation = [&]() {
+        while (!monitor->isEmpty())
+        {
+            this_thread::sleep_for(stall);
+            total_stall += stall;
+        }
+    };
 
-//    v = initialVelocity();
-//    r = initialPosition();
-//    for (t = initialTime(); t < endTime(); t += timestep())
-//    {
-//        if (monitor->isFull())
-//            stallSimulation();
-//        monitor->setStallTime(total_stall);
-//        pushData();
+    v = initialVelocity();
+    r = initialPosition();
+    t = initialTime();
+    for ( ; t < endTime(); )
+    {
+        if (monitor->isFull())
+            stallSimulation();
+        monitor->setStallTime(total_stall);
+        pushData();
 
+        auto y = OdeSystem{ r, v };
+//        auto odesys = solver( t, y, timestep(), derive, 1.0E-04 );
+        solver.calculateK(t, y, timestep(), derive);
+        auto odesys = solver.rk5(y);
+        r = std::get<0>(odesys);
+        v = std::get<1>(odesys);
 
+//        t += solver.stepUsed();
+//        if (t + solver.stepSuggested() > endTime())
+//            setTimestep(endTime() - t);
+//        else
+//            setTimestep(solver.stepSuggested());
+        t += timestep();
+    }
+    pushData();
 
-//        auto vpack = vsolver( t, v, timestep(), vderive, 1.0E-06 );
-////        rsolver.calculateK( t, r, vpack.hdid, rderive );
-//        v = vpack.y;
-////        r = rsolver.rk5(r);
-//        r = r + (vpack.hdid * v);
-//        t -= timestep();
-//        t += vpack.hdid;
-//        setTimestep(vpack.hnext);
+}
 
-////        step();
-//    }
-//    pushData();
-
-//}
-
-//shared_ptr<Monitor> SimulatorRK54::shareMonitor()
-//{
-//    return shared_ptr<Monitor>{ monitor };
-//}
+shared_ptr<Monitor> SimulatorRK54::shareMonitor()
+{
+    return shared_ptr<Monitor>{ monitor };
+}
