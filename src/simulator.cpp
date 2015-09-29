@@ -327,8 +327,8 @@ SimulatorRK54::SimulatorRK54()
 {
     derive = [this](const X& t, const OdeSystem& y){
         utils::unused(t);
+        auto rt = std::get<0>(y);
         auto vt = std::get<1>(y);
-        auto rt = r + (timestep() * vt);
         auto mg = magneticField(rt);
         auto drdt = vt;
         auto dvdt = (charge() / mass()) * (cross(vt, mg));
@@ -381,7 +381,7 @@ void SimulatorRK54::run()
         pushData();
 
         auto y = OdeSystem{ r, v };
-        auto odesys = solver( t, y, timestep(), derive, 1.0E-03 );
+        auto odesys = solver( t, y, timestep(), derive, 1.0E-07 );
 //        solver.calculateK(t, y, timestep(), derive);
 //        auto odesys = solver.rk5(y);
         r = std::get<0>(odesys);

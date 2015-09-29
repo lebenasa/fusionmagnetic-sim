@@ -68,7 +68,7 @@ public:
     }
 
     OdeSystem operator()(const X& x, const OdeSystem& y, const X& htry, const Derivs& derive,
-                      dec tolerance=1.0E-06)
+                         dec tolerance=1.0E-06)
     {
         /*! Runge Kutta Fehlberg routine based of Numerical Recipes in C
           */
@@ -83,40 +83,24 @@ public:
             auto y4 = rk4(y);
             y5 = rk5(y);
             auto diff = y5 - y4;
-//            auto erckh = err.min();
-//            auto erckh2 = err.max();
-//            erckh *= 1.0;
-//            erckh2 *= 1.0;
-//            auto crit = ::std::abs(flatify(y)) + std::abs(flatify(h * derive(x, y)));
-//            for (auto i = 0u; i < err.size(); ++i)
-//                errMax = std::max(errMax, std::abs(err[i] / crit[i]));
-//            errMax /= eps;
-//            auto crit = std::abs(flatify(eps * h * derive(x, y)));
-//            auto critchk = crit.min();
-//            auto critchk2 = crit.max();
-//            auto errRatio = ::std::abs(crit / err);
-//            errMax = eps / err.max();
-//            if (errMax <= 1.0) break;
+            auto crit = abs(h * derive(x, y));
+//            auto crit = abs(y);
+            errMax = errorMax(crit, diff);
+            if (errMax > 1.0) break;
 
-//            auto r = std::get<0>(y5) - std::get<0>(y4);
-//            auto v = std::get<1>(y5) - std::get<1>(y4);
-//            std::cout << std::scientific << "# r: " << r.i().val << " " << r.j().val << " " << r.k().val << "\n";
-//            std::cout << std::scientific << "# v: " << v.i().val << " " << v.j().val << " " << v.k().val << "\n";
-//            for (auto i = 0u; i <= 6; ++i)
-//                std::cout << std::scientific << "# err[i] " << err[i] << "\n";
-//            auto crit = eps * (abs(y) + abs(h * derive(x, y)));
-            errMax = max(abs(diff));
-//            std::cout << std::scientific << "# err: " << errMax << "\n";
-            if (errMax < eps) break;
-
-            auto htemp = shrink(h, eps / errMax);
+            auto htemp = shrink(h, errMax);
             h = (h >= X{ 0.0 }) ? ::std::max(htemp, 0.1 * h) : ::std::min(htemp, 0.1 * h);
-            if (x+h - x < X{ 1.0E-30 })
+            if (x+h - x == X{ 0.0 })
+            {
+                std::cerr << "\nUnderflow error with h " << h << "\n";
                 throw ::std::underflow_error("Underflow error, stepsize too small");
+//                h = hmin;
+//                break;
+            }
         }
 
         hdid = h;
-        if (eps / errMax < errcon)
+        if (errMax < errcon)
             hnext = grow(h, eps / errMax);
         else
             hnext = 5.0 * h;
@@ -219,6 +203,17 @@ private:
         auto dy = std::get<1>(v);
         return OdeSystem{ pl::abs(y), pl::abs(dy) };
     }
+
+    dec errorMax(const OdeSystem& d0, const OdeSystem& d1)
+    {
+        auto r0 = std::get<0>(d0);
+        auto v0 = std::get<1>(d1);
+        auto r1 = std::get<0>(d1);
+        auto v1 = std::get<1>(d1);
+        auto r_rat = r0 / r1;
+        auto v_rat = v0 / v1;
+        return std::max(max(pl::abs(r_rat)), max(pl::abs(v_rat))) * eps;
+    }
 };
 
 inline RK54::OdeSystem operator*(RK54::X lhs, RK54::ResSystem rhs)
@@ -227,8 +222,6 @@ inline RK54::OdeSystem operator*(RK54::X lhs, RK54::ResSystem rhs)
     auto dy = ::std::get<1>(rhs);
     return RK54::OdeSystem{ lhs * y, lhs * dy };
 }
-
-
 
 inline RK54::ResSystem operator*(dec lhs, RK54::ResSystem rhs)
 {
@@ -257,7 +250,6 @@ inline RK54::OdeSystem operator-(RK54::OdeSystem lhs, RK54::OdeSystem rhs)
     auto dyb = ::std::get<1>(rhs);
     return RK54::OdeSystem{ ya - yb, dya - dyb };
 }
-
 
 //template < class UY, class UX, size_t orde=2 >
 //class RK54

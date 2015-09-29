@@ -61,7 +61,7 @@ class Experiment1:
     Bz0 = 4.7
     mass = 2.013553 * constants['atomic_mass']
     charge = 1.0 * constants['elementary_charge']
-    step = 0.1
+    step = 0.25
     count = 6
     cdat = { }
 
@@ -76,7 +76,7 @@ class Experiment1:
         app.kineticEnergy = 15
         app.fieldBaseStrength = [0.0, 0.0, self.Bz0]
         app.initialTime = 0.0
-        app.endTime = 100 * self.gyro_period()
+        app.endTime = 1000  * self.gyro_period()
         app.save()
         self.gen_outfiles()
 
@@ -90,7 +90,7 @@ class Experiment1:
         self.outfiles = []
 
         for i in range(1, self.count):
-            self.outfiles.append('FixedStep_{ct:0>2}'.format(ct=i))
+            self.outfiles.append('AdaptiveStep_{ct:0>2}'.format(ct=i))
 
     def execute(self):
         import os
