@@ -325,10 +325,10 @@ shared_ptr<Monitor> Simulator::shareMonitor()
 SimulatorRK54::SimulatorRK54()
     : SimulatorData{ }, monitor{ new Monitor }
 {
-    derive = [this](const X& t, const OdeSystem& y){
-        utils::unused(t);
+    derive = [this](const X& x, const OdeSystem& y){
         auto rt = std::get<0>(y);
         auto vt = std::get<1>(y);
+        rt += (t-x) * vt;
         auto mg = magneticField(rt);
         auto drdt = vt;
         auto dvdt = (charge() / mass()) * (cross(vt, mg));
@@ -395,7 +395,7 @@ void SimulatorRK54::run()
 //        t += timestep();
     }
     pushData();
-
+    monitor->callback();
 }
 
 shared_ptr<Monitor> SimulatorRK54::shareMonitor()

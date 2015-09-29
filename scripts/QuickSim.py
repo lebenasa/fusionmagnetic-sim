@@ -14,25 +14,27 @@ def gyro_freq(mass, charge, magnetic):
 
 if __name__ == '__main__':
     s = settings.Settings()
-    s.outfile = 'Helix_Fixed4'
+    s.outfile = 'Helix_Protide'
     s.save()
     
     app = mag.Application()
-    app.x0 = 6.0
-    app.y0 = 6.0
-    app.z0 = 0.3
+    app.x0 = 6
+    app.y0 = 6
+    app.z0 = 10
     app.useKineticEnergy = True
-    app.kineticEnergy = 1500
-    app.particleCode = 'de+'
+    app.kineticEnergy = 15
+    app.particleCode = 'manual'
     app.initialTime = 0.0
-    app.endTime = 6.0E-5
+    app.endTime = 5.0E-6
     mass = 2.013553 * constants['atomic_mass']
-    charge = 1.0 * constants['elementary_charge']
+    charge = -1.0 * constants['elementary_charge']
+    app.particleMass = mass
+    app.particleCharge = charge
     app.timeStep = 0.01 * (1.0 / gyro_freq(mass, charge, 4.7))
 
     app.fieldCode = 'Helix'
-    app.fieldBaseStrength = [ 4.7, 3.0 ]
-    app.fieldGradient = [ 0.2, 0.2, 0.5 ]
+    app.fieldBaseStrength = [ 4.7, 2.0 ]
+    app.fieldGradient = [ 0.1, 1.0, 0.9 ]
     app.fieldLength = 1.0
     app.fieldFreq = 1.0
     
@@ -44,9 +46,9 @@ if __name__ == '__main__':
     
     app.execute()
 
-    success = False
-    with open(path.join(s.outdir, s.outfile) + s.outext, 'r') as out:
-        for line in out:
-            pass
-        success = line.find("END OUTPUT") != -1
-    print success
+#    success = False
+#    with open(path.join(s.outdir, s.outfile) + s.outext, 'r') as out:
+#        for line in out:
+#            pass
+#        success = line.find("END OUTPUT") != -1
+#    print success

@@ -83,10 +83,8 @@ public:
             auto y4 = rk4(y);
             y5 = rk5(y);
             auto diff = y5 - y4;
-            auto crit = abs(h * derive(x, y));
-//            auto crit = abs(y);
-            errMax = errorMax(crit, diff);
-            if (errMax > 1.0) break;
+            errMax = eps / errorMax(diff, y4);
+            if (errMax >= 1.0) break;
 
             auto htemp = shrink(h, errMax);
             h = (h >= X{ 0.0 }) ? ::std::max(htemp, 0.1 * h) : ::std::min(htemp, 0.1 * h);
@@ -94,14 +92,12 @@ public:
             {
                 std::cerr << "\nUnderflow error with h " << h << "\n";
                 throw ::std::underflow_error("Underflow error, stepsize too small");
-//                h = hmin;
-//                break;
             }
         }
 
         hdid = h;
         if (errMax < errcon)
-            hnext = grow(h, eps / errMax);
+            hnext = grow(h, errMax);
         else
             hnext = 5.0 * h;
         return y5;
@@ -187,7 +183,11 @@ private:
     dec max(const Vector<U>& v)
     {
         auto max = std::max(v.i().val, v.j().val);
-        return std::max(max, v.k().val);
+        max = std::max(max, v.k().val);
+        if (v.i().val > 1.0E100) max = std::max(v.j().val, v.k().val);
+        if (v.j().val > 1.0E100) max = std::max(v.i().val, v.k().val);
+        if (v.k().val > 1.0E100) max = std::max(v.i().val, v.j().val);
+        return max;
     }
 
     dec max(const OdeSystem& v)
@@ -207,12 +207,12 @@ private:
     dec errorMax(const OdeSystem& d0, const OdeSystem& d1)
     {
         auto r0 = std::get<0>(d0);
-        auto v0 = std::get<1>(d1);
+        auto v0 = std::get<1>(d0);
         auto r1 = std::get<0>(d1);
         auto v1 = std::get<1>(d1);
         auto r_rat = r0 / r1;
         auto v_rat = v0 / v1;
-        return std::max(max(pl::abs(r_rat)), max(pl::abs(v_rat))) * eps;
+        return std::max(max(pl::abs(r_rat)), max(pl::abs(v_rat)));
     }
 };
 

@@ -133,6 +133,9 @@ class Simulator(object):
         """
         p = []
         p.append(self.particleCode)
+        if self.particleCode == 'manual':
+            p.append(str(self.particleMass))
+            p.append(str(self.particleCharge))
         p.append(str(self.x0))
         p.append(str(self.y0))
         p.append(str(self.z0))
@@ -187,7 +190,7 @@ class Simulator(object):
     
     @particleCode.setter
     def particleCode(self, code):
-        available = ['e-', 'p+', 'n', 'de+', 'tr+', 'he+']
+        available = ['manual', 'e-', 'p+', 'n', 'de+', 'tr+', 'he+']
         for c in available:
             if code.lower() == c:
                 self.params['particleCode'] = c

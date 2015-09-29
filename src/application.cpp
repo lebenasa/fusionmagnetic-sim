@@ -307,10 +307,10 @@ void Application::exec()
     auto date = chrono::system_clock::now();
     started = date;
     isRunning = true;
-    auto writing_future = async(launch::async, [this](){ writeOutput(); });
+//    auto writing_future = async(launch::async, [this](){ writeOutput(); });
     sim.run();
     isRunning = false;
-    writing_future.get();
+//    writing_future.get();
 }
 
 #endif
