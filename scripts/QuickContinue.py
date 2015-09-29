@@ -30,8 +30,16 @@ if __name__ == '__main__':
     if args.newfile == args.lastfile:
         print 'Unable to overwrite {fn}'.format(fn=args.lastfile)
         exit()
-    
-    t, x, y, z, vx, vy, vz = putil.tail(args.lastfile, [0, 1, 2, 3, 4, 5, 6])
+        
+    t = 0.0
+    x = 0.0
+    y = 0.0
+    z = 0.0
+    vx= 0.0
+    vy= 0.0
+    vz= 0.0
+    with open(args.lastfile) as f:
+        t, x, y, z, vx, vy, vz = putil.tail(f, [0, 1, 2, 3, 4, 5, 6])
     
     app = mag.Application()
     app.x0 = x
@@ -51,7 +59,7 @@ if __name__ == '__main__':
     app.execute()
     
     success = False
-    with open(s.outpath, 'r') as out:
+    with open(s.outpath(), 'r') as out:
         for line in out:
             pass
         success = line.find("END OUTPUT") != -1

@@ -181,52 +181,43 @@ Quantity<coulomb> SimulatorData::charge() const
 
 // Monitor implementation
 Monitor::Monitor()
-    : stall{ chrono::milliseconds{0} }, buf_capacity{ 500000 }
+    : stall{ chrono::milliseconds{0} }, buf_capacity{ 5000000 }
 {
 }
 
 void Monitor::pushTime(const Quantity<second> &t)
 {
-    t_buf.push_back(t);
+    t_buf.emplace_back(t);
 }
 
 void Monitor::pushVelocity(const Vector<mps> &v)
 {
-    v_buf.push_back(v);
+    v_buf.emplace_back(v);
 }
 
 void Monitor::pushPosition(const Vector<meter> &r)
 {
-    r_buf.push_back(r);
+    r_buf.emplace_back(r);
 }
 
 Quantity<second> Monitor::pullTime()
 {
     auto t = t_buf.front();
-    mutex m;
-    m.lock();
     t_buf.pop_front();
-    m.unlock();
     return t;
 }
 
 Vector<mps> Monitor::pullVelocity()
 {
     auto v = v_buf.front();
-    mutex m;
-    m.lock();
     v_buf.pop_front();
-    m.unlock();
     return v;
 }
 
 Vector<meter> Monitor::pullPosition()
 {
     auto r = r_buf.front();
-    mutex m;
-    m.lock();
     r_buf.pop_front();
-    m.unlock();
     return r;
 }
 
@@ -263,6 +254,16 @@ chrono::milliseconds Monitor::stallTime() const
 void Monitor::setStallTime(const chrono::milliseconds &t)
 {
     stall = t;
+}
+
+void Monitor::callback()
+{
+    cb(*this);
+}
+
+void Monitor::setCallback(std::function<void (Monitor &)> fn)
+{
+    cb = fn;
 }
 
 // Simulator implementation
@@ -356,19 +357,17 @@ void SimulatorRK54::run()
     auto stall = chrono::milliseconds{ 10 };
     chrono::milliseconds total_stall{ 0 };
     auto pushData = [this]() {
-        mutex m;
-        m.lock();
         monitor->pushTime(t);
         monitor->pushPosition(r);
         monitor->pushVelocity(v);
-        m.unlock();
     };
     auto stallSimulation = [&]() {
-        while (!monitor->isEmpty())
-        {
-            this_thread::sleep_for(stall);
-            total_stall += stall;
-        }
+//        while (!monitor->isEmpty())
+//        {
+//            this_thread::sleep_for(stall);
+//            total_stall += stall;
+//        }
+        monitor->callback();
     };
 
     v = initialVelocity();
@@ -382,18 +381,18 @@ void SimulatorRK54::run()
         pushData();
 
         auto y = OdeSystem{ r, v };
-//        auto odesys = solver( t, y, timestep(), derive, 1.0E-04 );
-        solver.calculateK(t, y, timestep(), derive);
-        auto odesys = solver.rk5(y);
+        auto odesys = solver( t, y, timestep(), derive, 1.0E-03 );
+//        solver.calculateK(t, y, timestep(), derive);
+//        auto odesys = solver.rk5(y);
         r = std::get<0>(odesys);
         v = std::get<1>(odesys);
 
-//        t += solver.stepUsed();
-//        if (t + solver.stepSuggested() > endTime())
-//            setTimestep(endTime() - t);
-//        else
-//            setTimestep(solver.stepSuggested());
-        t += timestep();
+        t += solver.stepUsed();
+        if (t + solver.stepSuggested() > endTime())
+            setTimestep(endTime() - t);
+        else
+            setTimestep(solver.stepSuggested());
+//        t += timestep();
     }
     pushData();
 

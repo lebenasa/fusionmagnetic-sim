@@ -8,6 +8,7 @@ Application::Application()
     : sim{ }, isRunning{ false }
 {
     monitor = sim.shareMonitor();
+    monitor->setCallback([this](Monitor&){ writeOutput(); });
 }
 
 void Application::promptParticleData()
@@ -222,16 +223,13 @@ void Application::writeOutput()
     using namespace chrono;
     using namespace this_thread;
 
-    auto waitTime = milliseconds{ 1 };
+//    auto waitTime = milliseconds{ 10 };
     milliseconds total_wait{ 0 };
 
     auto write = [&]() {
-        mutex m;
-        m.lock();
         auto t = monitor->pullTime();
         auto r = monitor->pullPosition();
         auto v = monitor->pullVelocity();
-        m.unlock();
         auto elapsed = duration_cast<milliseconds>(system_clock::now() - started) -
                 total_wait - monitor->stallTime();
 //        auto elapsed = duration_cast<milliseconds>(system_clock::now() - started);
@@ -242,18 +240,21 @@ void Application::writeOutput()
              << elapsed.count() << "\n";
     };
 
-    while (isRunning)
-    {
-        if (monitor->isEmpty())
-        {
-            sleep_for(waitTime);
-            total_wait += waitTime;
-            continue;
-        }
-        write();
-    }
+//    while (isRunning)
+//    {
+//        if (monitor->isEmpty())
+//        {
+//            sleep_for(waitTime);
+//            total_wait += waitTime;
+//        }
+//        else
+//            write();
+//    }
 
-    cout << "# --- END SIMULATION ---\n";
+//    cout << "# --- END SIMULATION ---\n";
+//    sleep_for(100 * waitTime);
+//    total_wait += waitTime;
+
     while (!monitor->isEmpty())
         write();
 }
@@ -273,14 +274,11 @@ void Application::exec()
     started = date;
     isRunning = true;
     cout << "# --- BEGIN SIMULATION ---\n";
-    auto writing_future = async(launch::async, [this](){ writeOutput(); });
+//    auto writing_future = async(launch::async, [this](){ writeOutput(); });
     sim.run();
-    mutex m;
-    m.lock();
     isRunning = false;
-    cerr << "Monitor use count: " << monitor.use_count() << "\n";
-    m.unlock();
-    writing_future.get();
+//    cerr << "Monitor use count: " << monitor.use_count() << "\n";
+//    writing_future.get();
     writeOutputFooter();
 }
 

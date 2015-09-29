@@ -75,6 +75,7 @@ class Monitor
     std::deque<Quantity<second>> t_buf;
     std::deque<Vector<mps>> v_buf;
     std::deque<Vector<meter>> r_buf;
+    std::function< void(Monitor&) > cb;
 public:
     Monitor();
 
@@ -93,6 +94,9 @@ public:
     bool isEmpty();
     bool isFull();
     std::chrono::milliseconds stallTime() const;
+
+    void callback();
+    void setCallback(std::function< void(Monitor&) >);
 
 protected:
     void setStallTime(const std::chrono::milliseconds& t);
