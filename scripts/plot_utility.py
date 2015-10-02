@@ -6,8 +6,6 @@ Created on Fri Sep 25 06:46:33 2015
 Helper function to plot files
 """
 
-import matplotlib
-matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 
 import utility as util
@@ -98,6 +96,7 @@ def plot3D(fn, comment='#', skipline=1, skiprow=2):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.plot(x, y, z)
+#    ax.scatter(x, y, z, c=t, cmap='gray_r')
     plt.show()
 
 if __name__ == '__main__':

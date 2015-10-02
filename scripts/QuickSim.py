@@ -14,7 +14,7 @@ def gyro_freq(mass, charge, magnetic):
 
 if __name__ == '__main__':
     s = settings.Settings()
-    s.outfile = 'Helix_Protide'
+    s.outfile = 'Drift_Protide'
     s.save()
     
     app = mag.Application()
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     app.particleCharge = charge
     app.timeStep = 0.01 * (1.0 / gyro_freq(mass, charge, 4.7))
 
-    app.fieldCode = 'Helix'
+    app.fieldCode = 'Drift'
     app.fieldBaseStrength = [ 4.7, 2.0 ]
     app.fieldGradient = [ 0.1, 1.0, 0.9 ]
     app.fieldLength = 1.0

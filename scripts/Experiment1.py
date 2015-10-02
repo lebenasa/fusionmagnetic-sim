@@ -43,11 +43,9 @@ import os
 import matplotlib as mpl
 mpl.use('Qt4Agg')
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 
 import settings
 import magnetic as mag
-import utility as util
 import plot_utility as putil
 
 constants = {
@@ -90,7 +88,7 @@ class Experiment1:
         self.outfiles = []
 
         for i in range(1, self.count):
-            self.outfiles.append('AdaptiveStep_{ct:0>2}'.format(ct=i))
+            self.outfiles.append('AdaptiveStep2_{ct:0>2}'.format(ct=i))
 
     def execute(self):
         import os
@@ -208,9 +206,9 @@ class Experiment1:
                 t, r, z = putil.extractData(f, [0, 1, 2])
                 r = np.array(r)
                 z = np.array(z)
-                t = np.array(t)
+                t = np.array(t) * 10**6
                 plt.plot(t, r, '--', label='{step} $\\tau_c$'.format(step=i*self.step))
-        plt.xlabel('Time (s)')
+        plt.xlabel('Time ($\\mu$s)')
         plt.ylabel('Error Accumulation')
         plt.legend(loc=2, ncol=2, framealpha=0.5)
         plt.tight_layout()
@@ -223,7 +221,7 @@ class Experiment1:
                 x = np.array(x)
                 y = np.array(y)
                 r = np.hypot(x, y)
-                plt.plot(z, r, '-o', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
+                plt.plot(z, r, 'o', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
 
         with open(fanl) as f:
             t, x, y, z = putil.extractData(f, [0, 1, 2, 3])

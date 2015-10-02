@@ -8,7 +8,7 @@ For big data, since interactive plotting is too heavy
 
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
+mpl.use('pdf')
 import matplotlib.pyplot as plt
 
 from plot_utility import extractData

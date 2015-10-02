@@ -17,8 +17,8 @@ Vector<tesla> GradientZField::operator()(const Vector<meter>& position)
 {
     auto Bx = m_B.i();
     auto By = m_B.j();
-    auto Bz = m_B.k() * (1 + alpha * hypot(position.i(), position.j()));
-//    auto Bz = m_B.k() * (1.0 + alpha * position.i());
+//    auto Bz = m_B.k() * (1 + alpha * hypot(position.i(), position.j()));
+    auto Bz = m_B.k() * (1.0 + alpha * position.i());
     return Vector<tesla>{ Bx, By, Bz };
 }
 

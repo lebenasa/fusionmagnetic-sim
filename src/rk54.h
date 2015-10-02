@@ -83,7 +83,8 @@ public:
             auto y4 = rk4(y);
             y5 = rk5(y);
             auto diff = y5 - y4;
-            errMax = eps / errorMax(diff, y4);
+            auto crit = abs(y) + abs(h * derive(x, y));
+            errMax = eps / errorMax(diff, crit);
             if (errMax >= 1.0) break;
 
             auto htemp = shrink(h, errMax);

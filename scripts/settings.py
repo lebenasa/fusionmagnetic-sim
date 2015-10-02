@@ -149,7 +149,8 @@ class Simulator(object):
             p.append(str(self.vz0))
         p.append(self.fieldCode)
         if self.fieldCode == 'Drift':
-            p.append(str(self.fieldBaseStrength[0]))
+            for val in self.fieldBaseStrength:
+                p.append(str(val))
             p.append(str(self.fieldGradient[0]))
         elif self.fieldCode == 'Smooth':
             p.append(str(self.fieldBaseStrength[0]))
@@ -190,7 +191,7 @@ class Simulator(object):
     
     @particleCode.setter
     def particleCode(self, code):
-        available = ['manual', 'e-', 'p+', 'n', 'de+', 'tr+', 'he+']
+        available = ['manual', 'e-', 'p+', 'n', 'de+', 'tr+', 'he+', 'p-']
         for c in available:
             if code.lower() == c:
                 self.params['particleCode'] = c
@@ -311,7 +312,7 @@ class Simulator(object):
         This property expect a list of 3 numbers. The number which eventually
         used depends on fieldCode:
         Homogen : [Bx0, By0, Bz0]
-        Drift   : [B]
+        Drift   : [Bx0, By0, Bz0]
         Smooth  : [B]
         Sharp   : [B]
         Sine    : [B]

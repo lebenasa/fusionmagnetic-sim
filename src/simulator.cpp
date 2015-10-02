@@ -381,7 +381,7 @@ void SimulatorRK54::run()
         pushData();
 
         auto y = OdeSystem{ r, v };
-        auto odesys = solver( t, y, timestep(), derive, 1.0E-07 );
+        auto odesys = solver( t, y, timestep(), derive, 1.0E-05 );
 //        solver.calculateK(t, y, timestep(), derive);
 //        auto odesys = solver.rk5(y);
         r = std::get<0>(odesys);

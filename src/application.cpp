@@ -25,6 +25,7 @@ void Application::promptParticleData()
     else if (name == "de+") id = 3;
     else if (name == "tr+") id = 4;
     else if (name == "he+") id = 5;
+    else if (name == "p-") id = 6;
     else id = -1;
     sim.setParticleId(id);
     if (id == -1)
@@ -35,6 +36,11 @@ void Application::promptParticleData()
         auto charge = Quantity<coulomb>{ c };
         sim.setMass(mass > 0.0_kg ? mass : 0.0_kg);
         sim.setCharge(charge);
+    }
+    else if (id == 6)
+    {
+        sim.setMass(atomic_mass);
+        sim.setCharge(-1.0 * atomic_charge);
     }
 
     // Write stored parameters:
@@ -90,14 +96,17 @@ void Application::promptMagneticField()
     {
         GradientZField field;
         cin >> a;
-        field.setBaseValue(make_quantity<tesla>(a));
         cin >> b;
-        field.setGradient(b);
+        cin >> c;
+        field.setBaseValue(make_vector<tesla>(a, b, c));
+        double d;
+        cin >> d;
+        field.setGradient(d);
         sim.setMagneticField(field);
 
         cout << "# Field codename: Drift\n";
-        cout << "# Base strength\t" << a << " Tesla\n";
-        cout << "# Gradient const\t" << b << "\n";
+        cout << "# Base strength\t" << a << " " << b << " " << c << " Tesla\n";
+        cout << "# Gradient const\t" << d << "\n";
     }
     else if (regex_match(codename, regex{"[Ss]mooth"}))
     {
