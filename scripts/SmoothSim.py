@@ -1,50 +1,51 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct  2 10:59:47 2015
+Created on Sun Oct  4 19:39:31 2015
 
 @author: leben
-Simulate magnetic field with radial gradient
+Simulate charged particle motion within magnetic field with axial gradient
 """
 import numpy as np
 import settings
 import magnetic as mag
 
-class Drift(object):    
+class Smooth(object):    
 #    particles = [ 'e-', 'de+', 'tr+', 'p-' ]
-#    particles = ['de+']
+#    particles = ['de+', 'tr+']
+#    particles = ['p-']
     particles = [ 'de+', 'tr+', 'p-' ]
-    cmaps = [ 'Blues', 'Greens', 'Reds', 'Oranges' ]
-    lmaps = [ 'blue', 'green', 'red', 'orange' ]
+    cmaps = [ 'Reds', 'Greens', 'Blues', 'Oranges' ]
+    lmaps = [ 'red', 'green', 'blue', 'orange' ]
 
     def __init__(self):
         app = mag.Application()
-        app.fieldCode = 'Drift'
+        app.fieldCode = 'Smooth'
         app.x0 = 0.3
         app.y0 = 0.3
-        app.z0 = 0
+        app.z0 = 0.0
         app.useKineticEnergy = True
         app.kineticEnergy = 15
-        app.fieldBaseStrength = [0.0, 0.0, 4.7]
+        app.fieldBaseStrength = [4.7]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 5.0E-6
+        app.endTime = 5.0E-5
         app.save()
         
-    def simulate(self, alpha):
+    def simulate(self, alpha, beta):
         app = mag.Application()
-        app.fieldGradient = [ alpha ]
+        app.fieldGradient = [ alpha, beta ]
         app.save()
         s = settings.Settings()
         
         for particle in self.particles:
-            outfile = self.filename(particle, alpha)
+            outfile = self.filename(particle, alpha, beta)
             s.outfile = outfile
             s.save()
             app.particleCode = particle
             app.save()
             app.execute()
             
-    def plotSuperimposed(self, alpha):
+    def plotSuperimposed(self, alpha, beta):
 #        import matplotlib.patches as mpatches
         import matplotlib.pyplot as plt
         from plot_utility import extractData
@@ -54,17 +55,21 @@ class Drift(object):
         import itertools
         cmap = itertools.cycle(self.cmaps)
 #        lmap = itertools.cycle(self.lmaps)
-        
+#        
 #        handles = []
 #        labels = []
         for particle in self.particles:
-            outfile = self.filename(particle, alpha)
+            outfile = self.filename(particle, alpha, beta)
             s.outfile = outfile
             with open(s.outpath()) as f:
                 t, x, y, z = extractData(f, [0, 1, 2, 3])
                 r = np.hypot(np.array(x), np.array(y))
-                plt.plot(z, r, '--', label=self.label(particle))
-                plt.scatter(z, r, c=t, cmap=cmap.next())
+#                start = len(z) / 4 + 250
+#                end = len(z) / 4 + 80
+                start = 0
+                end = len(z)
+                plt.plot(z[start:end], r[start:end], 'r-', linewidth=1, label=self.label(particle))
+                plt.scatter(z[start:end], r[start:end], c=t[start:end], cmap=cmap.next())
 #                handles.append(mpatches.Patch(color=lmap.next()))
 #                labels.append(self.label(particle))
                     
@@ -75,9 +80,19 @@ class Drift(object):
         plt.tight_layout()
         plt.show()
         
-    def execute(self, alpha):
-        self.simulate(alpha)
-        self.plotSuperimposed(alpha)
+    def execute(self, alpha, beta):
+        self.simulate(alpha, beta)
+        self.plotSuperimposed(alpha, beta)
+        
+#        s = settings.Settings()
+#        outs = []
+#        for particle in self.particles:
+#            s.outfile =  self.filename(particle, alpha, beta)
+#            outs.append(s.outpath())
+#        
+#        import plot_probe as pb
+#        app = pb.ProberApp(outs, self.particles)
+#        app.execute()
             
             
     def fileSuffix(self, particle):
@@ -100,15 +115,17 @@ class Drift(object):
         elif particle == 'p-':
             return '$H^-$'
             
-    def filename(self, particle, alpha, prefix='drift_'):
-        return prefix + self.fileSuffix(particle) + '_{alpha:>02}'.format(alpha=alpha)
+    def filename(self, particle, alpha, beta, prefix='smooth_'):
+        return prefix + self.fileSuffix(particle) + \
+        '_{alpha:>02}_{beta:>02}'.format(alpha=alpha, beta=beta)
 
 if __name__ == '__main__':  
     import argparse as ap
     parser = ap.ArgumentParser(description='Simulation for magnetic field with radial gradient')
     parser.add_argument('--alpha', default=0.5, type=float)
+    parser.add_argument('--beta', default=0.2, type=float)
     
     args = parser.parse_args()
-    d = Drift()
-    d.execute(args.alpha)
+    d = Smooth()
+    d.execute(args.alpha, args.beta)
     

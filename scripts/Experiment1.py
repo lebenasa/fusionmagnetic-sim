@@ -57,15 +57,17 @@ constants = {
 class Experiment1:
     outfiles = []
     Bz0 = 4.7
-    mass = 2.013553 * constants['atomic_mass']
-    charge = 1.0 * constants['elementary_charge']
-    step = 0.25
+#    mass = 2.013553 * constants['atomic_mass']
+#    charge = 1.0 * constants['elementary_charge']
+    mass = 1.0 * constants['atomic_mass']
+    charge = -1.0 * constants['elementary_charge']
+    step = 0.5
     count = 6
     cdat = { }
 
     def __init__(self):
         app = mag.Application()
-        app.particleCode = 'de+'
+        app.particleCode = 'p-'
         app.fieldCode = 'Homogen'
         app.x0 = 6.0
         app.y0 = 6.0
@@ -74,7 +76,7 @@ class Experiment1:
         app.kineticEnergy = 15
         app.fieldBaseStrength = [0.0, 0.0, self.Bz0]
         app.initialTime = 0.0
-        app.endTime = 1000  * self.gyro_period()
+        app.endTime = 100  * self.gyro_period()
         app.save()
         self.gen_outfiles()
 
@@ -88,7 +90,7 @@ class Experiment1:
         self.outfiles = []
 
         for i in range(1, self.count):
-            self.outfiles.append('AdaptiveStep2_{ct:0>2}'.format(ct=i))
+            self.outfiles.append('Homogen_Protide_{ct:0>2}'.format(ct=i))
 
     def execute(self):
         import os
