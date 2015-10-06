@@ -399,3 +399,108 @@ pl::dec ModHelixField::n() const
 {
     return m_n;
 }
+
+// TokamakField
+pl::Vector<pl::tesla> TokamakField::operator()(const pl::Vector<pl::meter>& position)
+{
+    auto x = position.i(); auto y = position.j(); auto z = position.k();
+    auto r = hypot(x, y);
+    auto teta = std::atan(y.val / x.val);
+    auto Bteta = m_Bt0 * (1.0 + m_rho * r);
+    auto Br = -1.0 * m_Bz0 * m_gamma * (m_n * ::pi * r / (2.0 * m_L)) * sin(m_n * ::pi * z / m_L) *
+            (1.0 + m_epsilon * cos(::pi * teta));
+    auto Bx = Br * cos(teta) - Bteta * sin(teta);
+    auto By = Br * sin(teta) + Bteta * cos(teta);
+    auto Bz = m_Bz0 * (1.0 + pl::sqrt(m_alpha * pl::pow<meter, 2>(x) + m_beta * pl::pow<meter, 2>(y)) -
+                       (m_gamma * cos(m_n * ::pi * z / m_L))) *
+            (1.0 + m_epsilon * cos(::pi * teta));
+    return Vector<tesla>{ Bx, By, Bz };
+}
+
+void TokamakField::setBz0(const pl::Quantity<pl::tesla>& Bz0)
+{
+    m_Bz0 = Bz0;
+}
+
+Quantity<tesla> TokamakField::Bz0() const
+{
+    return m_Bz0;
+}
+
+void TokamakField::setBteta0(const pl::Quantity<tesla> &Bteta0)
+{
+    m_Bt0 = Bteta0;
+}
+
+Quantity<tesla> TokamakField::Bteta0() const
+{
+    return m_Bt0;
+}
+
+void TokamakField::setAlpha(const pl::dec &v)
+{
+    m_alpha = make_quantity<TokamakField::GradientAB>(v);
+}
+
+Quantity<TokamakField::GradientAB> TokamakField::alpha() const
+{
+    return m_alpha;
+}
+
+void TokamakField::setBeta(const pl::dec &v) {
+    m_beta = make_quantity<TokamakField::GradientAB>(v);
+}
+
+pl::Quantity<TokamakField::GradientAB> TokamakField::beta() const
+{
+    return m_beta;
+}
+
+void TokamakField::setGamma(const pl::dec &v) {
+    m_gamma = v;
+}
+
+pl::dec TokamakField::gamma() const
+{
+    return m_gamma;
+}
+
+void TokamakField::setEpsilon(const pl::dec &v)
+{
+    m_epsilon = v;
+}
+
+pl::dec TokamakField::epsilon() const
+{
+    return m_epsilon;
+}
+
+void TokamakField::setRho(const pl::dec &v)
+{
+    m_rho = make_quantity<TokamakField::GradientP>(v);
+}
+
+Quantity<TokamakField::GradientP> TokamakField::rho() const
+{
+    return m_rho;
+}
+
+void TokamakField::setL(const pl::dec &L)
+{
+    m_L = make_quantity<meter>(L);
+}
+
+Quantity<meter>  TokamakField::L() const
+{
+    return m_L;
+}
+
+void TokamakField::setN(const pl::dec &v)
+{
+    m_n = v;
+}
+
+pl::dec TokamakField::n() const
+{
+    return m_n;
+}

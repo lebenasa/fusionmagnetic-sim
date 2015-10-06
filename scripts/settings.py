@@ -89,7 +89,7 @@ class Simulator(object):
     'kinetic': 15, 'useKinetic': False,
     'fieldCode': 'Homogen',
     'fieldStrength': [0.0, 0.0, 4.7],
-    'fieldGradient': [0.5, 0.5, 0.5],
+    'fieldGradient': [0.5, 0.5, 0.5, 0.5, 0.5],
     'fieldLength': 1.0,
     'fieldFreq': 0.5,
     'fieldParams1': 1.0,
@@ -120,7 +120,7 @@ class Simulator(object):
         self.useKineticEnergy = False
         self.fieldCode = 'Homogen'
         self.fieldBaseStrength = [0.0, 0.0, 4.7]
-        self.fieldGradient = [0.5, 0.5, 0.5]
+        self.fieldGradient = [0.5, 0.5, 0.5, 0.5, 0.5]
         self.fieldLength = 1.0
         self.fieldFreq = 0.5
         self.initialTime = 0.0
@@ -170,8 +170,19 @@ class Simulator(object):
         elif self.fieldCode == 'Helix':
             p.append(str(self.fieldBaseStrength[0]))
             p.append(str(self.fieldBaseStrength[1]))
-            for val in self.fieldGradient:
-                p.append(str(val))
+            p.append(str(self.fieldGradient[0]))
+            p.append(str(self.fieldGradient[1]))
+            p.append(str(self.fieldGradient[2]))
+            p.append(str(self.fieldLength))
+            p.append(str(self.fieldFreq))
+        elif self.fieldCode == 'Tokamak':
+            p.append(str(self.fieldBaseStrength[0]))
+            p.append(str(self.fieldBaseStrength[1]))
+            p.append(str(self.fieldGradient[0]))
+            p.append(str(self.fieldGradient[1]))
+            p.append(str(self.fieldGradient[2]))
+            p.append(str(self.fieldGradient[3]))
+            p.append(str(self.fieldGradient[4]))
             p.append(str(self.fieldLength))
             p.append(str(self.fieldFreq))
         else:
@@ -295,13 +306,13 @@ class Simulator(object):
     def fieldCode(self):
         """Magnetic field codename
         Recognizeable values: 'Homogen', 'Drift', 'Smooth', 'Sharp', 'Sine',
-        'Helix'
+        'Helix', 'Tokamak'
         """
         return self.params['fieldCode']
     
     @fieldCode.setter
     def fieldCode(self, value):
-        available = ['Homogen', 'Drift', 'Smooth', 'Sharp', 'Sine', 'Helix']
+        available = ['Homogen', 'Drift', 'Smooth', 'Sharp', 'Sine', 'Helix', 'Tokamak']
         for code in available:
             if (value == code):
                 self.params['fieldCode'] = code
@@ -344,6 +355,7 @@ class Simulator(object):
         Sharp   : [alpha, beta]
         Sine    : [alpha, beta]
         Helix   : [alpha, beta, gamma]
+        Tokamak : [alpha, beta, gamma, epsilon, rho]
         """
         return self.params['fieldGradient']
     
@@ -358,6 +370,10 @@ class Simulator(object):
             v[1] = value[1]
         if len(value) > 2:
             v[2] = value[2]
+        if len(value) > 3:
+            v[3] = value[3]
+        if len(value) > 4:
+            v[4] = value[4]
         self.params['fieldGradient'] = v
         
     @property

@@ -149,4 +149,40 @@ public:
     pl::Quantity<pl::tesla> radialField(const pl::Vector<pl::meter>& position);
     pl::Quantity<pl::tesla> angularField(const pl::Vector<pl::meter>& position);
 };
+
+class TokamakField
+{
+    using GradientAB = pl::Unit_minus<pl::dimless, pl::Unit_plus<pl::meter, pl::meter> >;
+    using GradientP = pl::Unit_minus<pl::dimless, pl::meter>;
+    pl::Quantity<pl::tesla> m_Bz0, m_Bt0;
+    pl::Quantity<GradientAB> m_alpha, m_beta;
+    pl::dec m_gamma, m_epsilon;
+    pl::Quantity<GradientP> m_rho;
+    pl::Quantity<pl::meter> m_L;
+    pl::dec m_n;
+public:
+    TokamakField() = default;
+
+    pl::Vector<pl::tesla> operator()(const pl::Vector<pl::meter>& position);
+
+    void setBz0(const pl::Quantity<pl::tesla>& Bz0);
+    pl::Quantity<pl::tesla> Bz0() const;
+    void setBteta0(const pl::Quantity<pl::tesla>& Bteta0);
+    pl::Quantity<pl::tesla> Bteta0() const;
+    void setAlpha(const pl::dec& v);
+    pl::Quantity<GradientAB> alpha() const;
+    void setBeta(const pl::dec& v);
+    pl::Quantity<GradientAB> beta() const;
+    void setGamma(const pl::dec& v);
+    pl::dec gamma() const;
+    void setEpsilon(const pl::dec& v);
+    pl::dec epsilon() const;
+    void setRho(const pl::dec& v);
+    pl::Quantity<GradientP> rho() const;
+    void setL(const pl::dec& L);
+    pl::Quantity<pl::meter> L() const;
+    void setN(const pl::dec& v);
+    pl::dec n() const;
+};
+
 #endif // FIELDS_H

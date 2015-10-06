@@ -196,6 +196,41 @@ void Application::promptMagneticField()
         cout << "# Dist length (L)\t" << f << " meter\n";
         cout << "# Dist freq (N)\t" << g << "\n";
     }
+    else if (regex_match(codename, regex{"[Tt]okamak"}))
+    {
+        TokamakField field;
+        cin >> a;
+        field.setBz0(make_quantity<tesla>(a));
+        cin >> b;
+        field.setBteta0(make_quantity<tesla>(b));
+        cin >> c;
+        field.setAlpha(c);
+        double d, e, f, g, h, i;
+        cin >> d;
+        field.setBeta(d);
+        cin >> e;
+        field.setGamma(e);
+        cin >> f;
+        field.setEpsilon(f);
+        cin >> g;
+        field.setRho(g);
+        cin >> h;
+        field.setL(h);
+        cin >> i;
+        field.setN(i);
+        sim.setMagneticField(field);
+
+        cout << "# Field codename: Helix\n";
+        cout << "# Base strength\t" << a << " Tesla\n";
+        cout << "# Poloidal strength\t" << b << " Tesla\n";
+        cout << "# Alpha const\t" << c << "\n";
+        cout << "# Beta const\t" << d << "\n";
+        cout << "# Gamma const\t" << e << "\n";
+        cout << "# Epsilon const\t" << f << "\n";
+        cout << "# Rho const\t" << g << "\n";
+        cout << "# Dist length (L)\t" << h << " meter\n";
+        cout << "# Dist freq (N)\t" << i << "\n";
+    }
     else
     {
         UniformField<tesla> field;
