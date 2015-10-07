@@ -7,7 +7,6 @@ Helper function to plot files
 """
 
 import matplotlib.pyplot as plt
-
 import utility as util
 
 def extractData(fn, cols=[0], comment='#'):
