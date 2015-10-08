@@ -8,6 +8,7 @@ Simulate charged particle motion within Tokamak-alike magnetic field
 import numpy as np
 import settings
 import magnetic as mag
+import Fields
 
 class Tokamak(object):    
 #    particles = [ 'e-', 'de+', 'tr+', 'p-' ]
@@ -20,14 +21,14 @@ class Tokamak(object):
         app = mag.Application()
         app.fieldCode = 'Tokamak'
         app.x0 = 0.1
-        app.y0 = 0.1
-        app.z0 = 1.5
+        app.y0 = 0.2
+        app.z0 = 0.4
         app.useKineticEnergy = True
         app.kineticEnergy = 15
         app.fieldBaseStrength = [4.7, 2.0]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 5E-5
+        app.endTime = 1E-5
         app.save()
         
     def simulate(self, alpha, beta, gamma, eps, rho, L, n):
@@ -48,30 +49,62 @@ class Tokamak(object):
     def plotSuperimposed(self, alpha, beta, gamma, eps, rho, L, n):
         import matplotlib.patches as mpatches
         import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
         from plot_utility import extractData
         
         s = settings.Settings()
+        fig, ax = plt.subplots(2, 2)
+        front, top, right, _ = np.ravel(ax)
+
+        field = Fields.TokamakField()
+        field.setupField(alpha=alpha, beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
         
-        import itertools
-        cmap = itertools.cycle(self.cmaps)
-        lmap = itertools.cycle(self.lmaps)
-        
-        handles = []
-        labels = []
         for particle in self.particles:
             s.outfile = self.filename(particle, alpha, beta, gamma, eps, rho, L, n)
             with open(s.outpath()) as f:
                 t, x, y, z = extractData(f, [0, 1, 2, 3])
-                r = np.hypot(np.array(x), np.array(y))
-#                plt.plot(z, r, '-', label=self.label(particle))
-                plt.scatter(z, r, c=t, cmap=cmap.next())
-                handles.append(mpatches.Patch(color=lmap.next()))
-                labels.append(self.label(particle))
-                    
-        plt.xlabel('z (m)')
-        plt.ylabel('R (m)')
-#        plt.legend(handles, labels, ncol=1, loc=4, framealpha=0.5)
-#        plt.legend(ncol=1, loc=4, framealpha=0.5)
+                front.plot(x, y, '-', label=self.label(particle))
+                front.set_xlabel('x')
+                front.set_ylabel('y')
+                #min, max = front.get_xlim()
+                min, max = [-0.5, 0.5]
+                levels = np.arange(4.2, 6.3, 0.4)
+                XX = np.arange(min, max, (max-min)/100)
+                #min, max = front.get_ylim()
+                YY = np.arange(min, max, (max-min)/100)
+                X, Y = np.meshgrid(XX, YY)
+                Z = 0.1
+                F = field.zField(X, Y, Z)
+                CS = front.contour(X, Y, F, levels)
+                plt.clabel(CS, fontsize=9, colors='k', inline=1)
+                top.plot(z, y, '-', label=self.label(particle))
+                top.set_xlabel('z')
+                top.set_ylabel('y')
+                #min, max = top.get_xlim()
+                min, max = [-2.0, 2.0]
+                ZZ = np.arange(min, max, (max-min)/100)
+                #min, max = top.get_ylim()
+                min, max = [-0.5, 0.5]
+                YY = np.arange(min, max, (max-min)/100)
+                Z, Y = np.meshgrid(ZZ, YY)
+                X = 0.1
+                F = field.zField(X, Y, Z)
+                CS = top.contour(Z, Y, F, levels)
+                plt.clabel(CS, fontsize=9, colors='k', inline=1)
+                right.plot(z, x, '-', label=self.label(particle))
+                right.set_xlabel('z')
+                right.set_ylabel('x')
+                #min, max = right.get_xlim()
+                min, max = [-2.0, 2.0]
+                ZZ = np.arange(min, max, (max-min)/100)
+                #min, max = right.get_ylim()
+                min, max = [-0.5, 0.5]
+                XX = np.arange(min, max, (max-min)/100)
+                Z, X = np.meshgrid(ZZ, XX)
+                Y = 0.1
+                F = field.zField(X, Y, Z)
+                CS = right.contour(Z, X, F, levels)
+                plt.clabel(CS, fontsize=9, colors='k', inline=1)
         plt.tight_layout()
         plt.show()
         
@@ -94,17 +127,6 @@ class Tokamak(object):
     def execute(self, alpha, beta, gamma, eps, rho, L, n):
         self.simulate(alpha, beta, gamma, eps, rho, L, n)
         self.plotSuperimposed(alpha, beta, gamma, eps, rho, L, n)
-#        self.plot3d(alpha, beta, gamma, eps, rho, L, n)
-#        outs = []
-#        s = settings.Settings()
-#        for particle in self.particles:
-#            s.outfile =  self.filename(particle, alpha, beta, gamma, L, n)
-#            outs.append(s.outpath())
-#        
-#        import plot_probe as pb
-#        app = pb.ProberApp(outs, self.particles)
-#        app.execute()
-            
             
     def fileSuffix(self, particle):
         if particle == 'e-':
@@ -126,7 +148,7 @@ class Tokamak(object):
         elif particle == 'p-':
             return '$H^-$'
             
-    def filename(self, particle, alpha, beta, gamma, eps, rho, L, n, prefix='helix_'):
+    def filename(self, particle, alpha, beta, gamma, eps, rho, L, n, prefix='tokamak_'):
         return prefix + self.fileSuffix(particle) + \
         '_{alpha:>02}_{beta:>02}_{gamma:>02}_{eps:>02}_{rho:>02}_{L:>02}_{n:>02}'.format(alpha=alpha, \
         beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
@@ -134,11 +156,11 @@ class Tokamak(object):
 if __name__ == '__main__':  
     import argparse as ap
     parser = ap.ArgumentParser(description='Simulation for magnetic field with tokamak-like shape')
-    parser.add_argument('--alpha', default=0.1, type=float)
-    parser.add_argument('--beta', default=0.1, type=float)
-    parser.add_argument('--gamma', default=0.8, type=float)
-    parser.add_argument('--eps', default=0.5, type=float)
-    parser.add_argument('--rho', default=0.5, type=float)
+    parser.add_argument('--alpha', default=1.0, type=float)
+    parser.add_argument('--beta', default=1.0, type=float)
+    parser.add_argument('--gamma', default=0.2, type=float)
+    parser.add_argument('--eps', default=0.2, type=float)
+    parser.add_argument('--rho', default=1.0, type=float)
     parser.add_argument('--length', default=1.0, type=float)
     parser.add_argument('--freq', default=1, type=float)
     
