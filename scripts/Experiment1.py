@@ -146,8 +146,8 @@ class Experiment1:
         rl = vr / self.gyro_freq()
         sign = np.sign(self.charge)
 
-        xg = app.x0 + rl * np.sin(phase)
-        yg = app.y0 - rl * np.cos(phase)
+        xg = app.x0 - rl * np.sin(phase)
+        yg = app.y0 + rl * np.cos(phase)
         xt = xg + rl * np.sin(self.gyro_freq() * t + (-1.0 * sign) * phase)
         yt = yg + sign * rl * np.cos(self.gyro_freq() * t + (-1.0 * sign) * phase)
         zt = app.z0 + v0[2] * t
@@ -222,18 +222,18 @@ class Experiment1:
                 t, x, y, z = putil.extractData(f, [0, 1, 2, 3])
                 x = np.array(x)
                 y = np.array(y)
-                r = np.hypot(x, y)
-                plt.plot(z, r, 'o', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
+#                r = np.hypot(x, y)
+                plt.plot(z, y, 'o', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
 
         with open(fanl) as f:
             t, x, y, z = putil.extractData(f, [0, 1, 2, 3])
             x = np.array(x)
             y = np.array(y)
-            r = np.hypot(x, y)
-            plt.plot(z, r, 'k-', linewidth=1.5, label='Analytic')
+#            r = np.hypot(x, y)
+            plt.plot(z, y, 'k-', linewidth=1.5, label='Analytic')
 
         plt.xlabel('z (m)')
-        plt.ylabel('R (m)')
+        plt.ylabel('y (m)')
         plt.legend(ncol=self.count / 3, loc=4, framealpha=0.5)
         plt.tight_layout()
         plt.show()
