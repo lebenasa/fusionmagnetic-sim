@@ -12,8 +12,8 @@ import magnetic as mag
 class Smooth(object):    
 #    particles = [ 'e-', 'de+', 'tr+', 'p-' ]
 #    particles = ['de+', 'tr+']
-#    particles = ['p-']
-    particles = [ 'de+', 'tr+', 'p-' ]
+    particles = ['p-']
+#    particles = [ 'de+', 'tr+', 'p-' ]
     cmaps = [ 'Reds', 'Greens', 'Blues', 'Oranges' ]
     lmaps = [ 'red', 'green', 'blue', 'orange' ]
 
@@ -28,7 +28,7 @@ class Smooth(object):
         app.fieldBaseStrength = [4.7]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 1.0E-6
+        app.endTime = 2.0E-4
         app.save()
         
     def simulate(self, alpha, beta):
@@ -51,10 +51,10 @@ class Smooth(object):
         from plot_utility import extractData
         
         s = settings.Settings()
-        app = mag.Application()
+#        app = mag.Application()
         
-        import itertools
-        cmap = itertools.cycle(self.cmaps)
+#        import itertools
+#        cmap = itertools.cycle(self.cmaps)
 #        lmap = itertools.cycle(self.lmaps)
 #        
 #        handles = []
@@ -65,18 +65,17 @@ class Smooth(object):
             s.outfile = outfile
             with open(s.outpath()) as f:
                 t, x, y, z = extractData(f, [0, 1, 2, 3])
-                r = np.hypot(np.array(x), np.array(y))
 #                start = len(z) / 4 + 250
 #                end = len(z) / 4 + 80
                 start = 0
                 end = len(z)
-                plt.plot(z[start:end], R[start:end], 'r-', linewidth=1, label=self.label(particle))
-                plt.scatter(z[start:end], R[start:end], c=t[start:end], cmap=cmap.next())
+                plt.plot(z[start:end], y[start:end], 'r-', linewidth=1, label=self.label(particle))
+#                plt.scatter(z[start:end], R[start:end], c=t[start:end], cmap=cmap.next())
 #                handles.append(mpatches.Patch(color=lmap.next()))
 #                labels.append(self.label(particle))
                     
         plt.xlabel('z (m)')
-        plt.ylabel('R (m)')
+        plt.ylabel('y (m)')
 #        plt.legend(handles, labels, ncol=1, loc=4, framealpha=0.5)
 #        plt.legend(ncol=1, loc=4, framealpha=0.5)
         plt.tight_layout()
