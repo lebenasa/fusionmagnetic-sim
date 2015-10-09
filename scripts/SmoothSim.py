@@ -28,7 +28,7 @@ class Smooth(object):
         app.fieldBaseStrength = [4.7]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 5.0E-5
+        app.endTime = 1.0E-6
         app.save()
         
     def simulate(self, alpha, beta):
@@ -51,6 +51,7 @@ class Smooth(object):
         from plot_utility import extractData
         
         s = settings.Settings()
+        app = mag.Application()
         
         import itertools
         cmap = itertools.cycle(self.cmaps)
@@ -58,6 +59,7 @@ class Smooth(object):
 #        
 #        handles = []
 #        labels = []
+        
         for particle in self.particles:
             outfile = self.filename(particle, alpha, beta)
             s.outfile = outfile
@@ -68,8 +70,8 @@ class Smooth(object):
 #                end = len(z) / 4 + 80
                 start = 0
                 end = len(z)
-                plt.plot(z[start:end], r[start:end], 'r-', linewidth=1, label=self.label(particle))
-                plt.scatter(z[start:end], r[start:end], c=t[start:end], cmap=cmap.next())
+                plt.plot(z[start:end], R[start:end], 'r-', linewidth=1, label=self.label(particle))
+                plt.scatter(z[start:end], R[start:end], c=t[start:end], cmap=cmap.next())
 #                handles.append(mpatches.Patch(color=lmap.next()))
 #                labels.append(self.label(particle))
                     

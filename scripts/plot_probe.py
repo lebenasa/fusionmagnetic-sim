@@ -8,7 +8,6 @@ Utility script to plot a part of output data
 import curses
 import numpy as np
 import matplotlib
-matplotlib.use('Qt4Agg')
 import matplotlib.pyplot as plt
 from plot_utility import extractData
 

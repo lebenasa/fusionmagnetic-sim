@@ -41,7 +41,6 @@ OK  6   Answer Hypothesis 1, if the hipotesis is correct, determine the optimal
 import numpy as np
 import os
 import matplotlib as mpl
-mpl.use('Qt4Agg')
 import matplotlib.pyplot as plt
 
 import settings
