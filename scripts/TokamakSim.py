@@ -20,9 +20,9 @@ class Tokamak(object):
     def __init__(self):
         app = mag.Application()
         app.fieldCode = 'Tokamak'
-        app.x0 = 0.1
-        app.y0 = 0.2
-        app.z0 = 0.4
+        app.x0 = 0.3
+        app.y0 = 0.3
+        app.z0 = 0.005
         app.useKineticEnergy = True
         app.kineticEnergy = 15
         app.fieldBaseStrength = [4.7, 2.0]
@@ -156,11 +156,11 @@ class Tokamak(object):
 if __name__ == '__main__':  
     import argparse as ap
     parser = ap.ArgumentParser(description='Simulation for magnetic field with tokamak-like shape')
-    parser.add_argument('--alpha', default=1.0, type=float)
-    parser.add_argument('--beta', default=1.0, type=float)
-    parser.add_argument('--gamma', default=0.2, type=float)
-    parser.add_argument('--eps', default=0.2, type=float)
-    parser.add_argument('--rho', default=1.0, type=float)
+    parser.add_argument('--alpha', default=0.5, type=float)
+    parser.add_argument('--beta', default=0.5, type=float)
+    parser.add_argument('--gamma', default=0.3, type=float)
+    parser.add_argument('--eps', default=0.6, type=float)
+    parser.add_argument('--rho', default=0.5, type=float)
     parser.add_argument('--length', default=1.0, type=float)
     parser.add_argument('--freq', default=1, type=float)
     
