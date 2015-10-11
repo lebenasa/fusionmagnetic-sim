@@ -33,20 +33,22 @@ Since the configurations are stored in JSON files, user can use both classes as 
 singletons.
 
 A simple example:
-> `` import os ``
-> `` from settings import Settings ``
-> `` from magnetic import Application ``
->
-> `` s = Settings() ``
-> `` app = Application() ``
-> `` s.outdir = os.path.join(s.rootdir, 'output') ``
-> `` app.fieldCode = 'Tokamak' ``
-> `` app.useKineticEnergy = True ``
-> `` # Run simulation with several kinetic energy levels ``
-> `` for E in range(1, 5, 0.5): ``
-> ``     s.outfile = 'Tokamak_E{E}'.format(E=E) ``
-> `` 	 s.save() ``
-> ``	 app.kineticEnergy = E ``
-> ``	 app.execute() ``
+```python
+import os
+from settings import Settings
+from magnetic import Application
+
+s = Settings()
+app = Application()
+s.outdir = os.path.join(s.rootdir, 'output')
+app.fieldCode = 'Tokamak'
+app.useKineticEnergy = True
+# Run simulation with several kinetic energy levels
+for E in range(1, 5, 0.5):
+    s.outfile = 'Tokamak_E{E:>02}'.format(E=E)
+    s.save()
+    app.kineticEnergy = E
+    app.execute()
+```
 
 More sample and demonstration may (or may not) be added in future.
