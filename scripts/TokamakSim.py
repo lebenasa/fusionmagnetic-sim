@@ -20,15 +20,19 @@ class Tokamak(object):
     def __init__(self):
         app = mag.Application()
         app.fieldCode = 'Tokamak'
-        app.x0 = 0.1
-        app.y0 = 0.2
-        app.z0 = 0.4
-        app.useKineticEnergy = True
-        app.kineticEnergy = 15
+        app.x0 = 0.3
+        app.y0 = 0.3
+        app.z0 = 0.005
+#        app.useKineticEnergy = True
+#        app.kineticEnergy = 15
+        app.useKineticEnergy = False
+        app.vx0 = 1.0E06
+        app.vy0 = 1.0E06
+        app.vz0 = 1.0E07
         app.fieldBaseStrength = [4.7, 2.0]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 1E-5
+        app.endTime = 1E-6
         app.save()
         
     def simulate(self, alpha, beta, gamma, eps, rho, L, n):
@@ -47,14 +51,12 @@ class Tokamak(object):
             app.execute()
             
     def plotSuperimposed(self, alpha, beta, gamma, eps, rho, L, n):
-        import matplotlib.patches as mpatches
         import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
         from plot_utility import extractData
         
         s = settings.Settings()
         fig, ax = plt.subplots(2, 2)
-        front, top, right, _ = np.ravel(ax)
+        right, front, top, _ = np.ravel(ax)
 
         field = Fields.TokamakField()
         field.setupField(alpha=alpha, beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
@@ -63,7 +65,7 @@ class Tokamak(object):
             s.outfile = self.filename(particle, alpha, beta, gamma, eps, rho, L, n)
             with open(s.outpath()) as f:
                 t, x, y, z = extractData(f, [0, 1, 2, 3])
-                front.plot(x, y, '-', label=self.label(particle))
+                front.plot(x, y, '-g', label=self.label(particle))
                 front.set_xlabel('x')
                 front.set_ylabel('y')
                 #min, max = front.get_xlim()
@@ -77,7 +79,7 @@ class Tokamak(object):
                 F = field.zField(X, Y, Z)
                 CS = front.contour(X, Y, F, levels)
                 plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                top.plot(z, y, '-', label=self.label(particle))
+                top.plot(z, y, '-g', label=self.label(particle))
                 top.set_xlabel('z')
                 top.set_ylabel('y')
                 #min, max = top.get_xlim()
@@ -91,7 +93,7 @@ class Tokamak(object):
                 F = field.zField(X, Y, Z)
                 CS = top.contour(Z, Y, F, levels)
                 plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                right.plot(z, x, '-', label=self.label(particle))
+                right.plot(z, x, '-g', label=self.label(particle))
                 right.set_xlabel('z')
                 right.set_ylabel('x')
                 #min, max = right.get_xlim()
@@ -107,6 +109,68 @@ class Tokamak(object):
                 plt.clabel(CS, fontsize=9, colors='k', inline=1)
         plt.tight_layout()
         plt.show()
+             
+    def plotSuperimposed2(self, alpha, beta, gamma, eps, rho, L, n):
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        from plot_utility import extractData
+        
+        s = settings.Settings()
+
+        field = Fields.TokamakField()
+        field.setupField(alpha=alpha, beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
+
+        for particle in self.particles:
+            s.outfile = self.filename(particle, alpha, beta, gamma, eps, rho, L, n)
+            with open(s.outpath()) as f:
+                t, x, y, z = extractData(f, [0, 1, 2, 3])
+                plt.plot(x, y, '-b', label=self.label(particle))
+                plt.xlabel('x')
+                plt.ylabel('y')
+                #min, max = front.get_xlim()
+                min, max = [-0.5, 0.5]
+                levels = np.arange(4.2, 6.3, 0.4)
+                XX = np.arange(min, max, (max-min)/1000)
+                #min, max = front.get_ylim()
+                YY = np.arange(min, max, (max-min)/1000)
+                X, Y = np.meshgrid(XX, YY)
+                Z = 0.1
+                F = field.zField(X, Y, Z)
+                CS = plt.contour(X, Y, F, levels)
+                plt.clabel(CS, fontsize=9, colors='k', inline=1)
+                plt.show()
+                plt.close()
+                plt.plot(z, y, '-b', label=self.label(particle))
+                plt.xlabel('z')
+                plt.ylabel('y')
+                #min, max = top.get_xlim()
+                min, max = [-2.0, 2.0]
+                ZZ = np.arange(min, max, (max-min)/1000)
+                #min, max = top.get_ylim()
+                min, max = [-0.5, 0.5]
+                YY = np.arange(min, max, (max-min)/1000)
+                Z, Y = np.meshgrid(ZZ, YY)
+                X = 0.1
+                F = field.zField(X, Y, Z)
+                CS = plt.contour(Z, Y, F, levels)
+                plt.clabel(CS, fontsize=9, colors='k', inline=1)
+                plt.show()
+                plt.close()
+                plt.plot(z, x, '-b', label=self.label(particle))
+                plt.xlabel('z')
+                plt.ylabel('x')
+                #min, max = right.get_xlim()
+                min, max = [-2.0, 2.0]
+                ZZ = np.arange(min, max, (max-min)/1000)
+                #min, max = right.get_ylim()
+                min, max = [-0.5, 0.5]
+                XX = np.arange(min, max, (max-min)/1000)
+                Z, X = np.meshgrid(ZZ, XX)
+                Y = 0.1
+                F = field.zField(X, Y, Z)
+                CS = plt.contour(Z, X, F, levels)
+                plt.clabel(CS, fontsize=9, colors='k', inline=1)
+                plt.show()
         
     def plot3d(self, alpha, beta, gamma, eps, rho, L, n):
         import matplotlib.pyplot as plt
@@ -126,7 +190,7 @@ class Tokamak(object):
         
     def execute(self, alpha, beta, gamma, eps, rho, L, n):
         self.simulate(alpha, beta, gamma, eps, rho, L, n)
-        self.plotSuperimposed(alpha, beta, gamma, eps, rho, L, n)
+        self.plotSuperimposed2(alpha, beta, gamma, eps, rho, L, n)
             
     def fileSuffix(self, particle):
         if particle == 'e-':

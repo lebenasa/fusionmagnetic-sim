@@ -23,11 +23,11 @@ class Drift(object):
         app.y0 = 0.3
         app.z0 = 0
         app.useKineticEnergy = True
-        app.kineticEnergy = 15
+        app.kineticEnergy = 150
         app.fieldBaseStrength = [0.0, 0.0, 4.7]
         app.initialTime = 1.0E-03
         app.timeStep = 1.0E-9
-        app.endTime = 2.0E-3
+        app.endTime = 1.0E-5
         app.save()
         
     def simulate(self, alpha):
@@ -41,28 +41,28 @@ class Drift(object):
             s.outfile = outfile
             s.save()
             app.particleCode = particle
-            app.useKineticEnergy = False
-            if particle == 'de+':
-                app.x0 = 1.404074
-                app.y0 = -1.92602e-01
-                app.z0 = 1.19896e+03
-                app.vx0 = 2.45512e+06
-                app.vy0 = 3.89723e+06
-                app.vz0 = 1.19896e+06
-            elif particle == 'tr+':
-                app.x0 = 5.52679e-01
-                app.y0 = -1.03044e+00
-                app.z0 = 9.79730e+02
-                app.vx0 = -2.59609e+06
-                app.vy0 = -5.38724e+05
-                app.vz0 = 9.79730e+05
-            elif particle == 'p-':
-                app.x0 = -2.07641e+00
-                app.y0 = -2.78223e+00 
-                app.z0 = 1.70132e+03 
-                app.vx0 = -1.09751e+07 
-                app.vy0 = -2.23460e+07 
-                app.vz0 = 1.70132e+06
+#            app.useKineticEnergy = False
+#            if particle == 'de+':
+#                app.x0 = 1.404074
+#                app.y0 = -1.92602e-01
+#                app.z0 = 1.19896e+03
+#                app.vx0 = 2.45512e+06
+#                app.vy0 = 3.89723e+06
+#                app.vz0 = 1.19896e+06
+#            elif particle == 'tr+':
+#                app.x0 = 5.52679e-01
+#                app.y0 = -1.03044e+00
+#                app.z0 = 9.79730e+02
+#                app.vx0 = -2.59609e+06
+#                app.vy0 = -5.38724e+05
+#                app.vz0 = 9.79730e+05
+#            elif particle == 'p-':
+#                app.x0 = -2.07641e+00
+#                app.y0 = -2.78223e+00 
+#                app.z0 = 1.70132e+03 
+#                app.vx0 = -1.09751e+07 
+#                app.vy0 = -2.23460e+07 
+#                app.vz0 = 1.70132e+06
             app.save()
             app.execute()
             
@@ -98,7 +98,7 @@ class Drift(object):
         plt.show()
         
     def execute(self, alpha):
-#        self.simulate(alpha)
+        self.simulate(alpha)
         self.plotSuperimposed(alpha)
             
             

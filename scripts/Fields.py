@@ -68,6 +68,27 @@ class AxialField(object):
         plt.xlabel('z')
         plt.ylabel('y')
         plt.show()
+        
+class SineField(object):
+    Bz0 = 4.7
+    alpha = 1.0
+    beta = 1.0
+    n = 1
+    L = 1.0
+    
+    def zField(self, x, y, z):
+        return self.Bz0 * (1 + self.alpha * np.hypot(x, y) + 
+        self.beta * z * np.sin(self.n * np.pi * z / self.L))
+        
+    def preview(self):
+        delta = 0.05
+        x = 0.0
+        y = np.arange(-2.0, 2.0, delta)
+        z = np.arange(-2.0, 2.0, delta)
+        Z, Y = np.meshgrid(z, y)
+        CS = plt.contour(Z, Y, self.zField(x, Y, Z))
+        plt.clabel(CS, fontsize=9, inline=1, colors='k')
+        plt.show()
 
 class TokamakField(object):
     Bz0 = 4.7
@@ -79,11 +100,8 @@ class TokamakField(object):
     rho = 1.0
     L = 1.0
     n = 1.0
-
-    def __init__(self):
-        pass
-
-    def setupField(self, *args, **kwargs):
+    
+    def setupField(self, **kwargs):
         if 'Bz0' in kwargs:
             self.Bz0 = kwargs['Bz0']
         if 'Bteta0' in kwargs:
@@ -103,43 +121,44 @@ class TokamakField(object):
         if 'n' in kwargs:
             self.n = kwargs['n']
 
-    def zField(self, x, y, z, **kwargs):
-        self.setupField(kwargs)
-        return self.Bz0 * (1 + np.sqrt(self.alpha * x**2 + self.beta * y**2)
-                           - self.gamma * np.cos(self.n * np.pi * z / self.L))\
-                               * (1 + self.eps * np.cos(np.pi * np.arctan(y/x)))
-
-    def tetaField(self, x, y, **kwargs):
+    def fieldTheta(self, x, y, **kwargs):
         self.setupField(kwargs)
         return self.Bteta0 * (1 + self.rho * np.hypot(x, y))
 
-    def rField(self, x, y, z, **kwargs):
+    def fieldR(self, x, y, z, **kwargs):
         self.setupField(kwargs)
         return -1 * self.Bz0 * self.gamma * (self.n * np.pi * np.hypot(x, y) /\
             (2 * self.L)) * np.sin(self.n * self.pi * z / self.L) * \
             (1 + self.eps * np.cos(np.pi * np.arctan(y/x)))
 
-    def previewZ(self):
-        delta = 0.1
+    def zField(self, x, y, z, **kwargs):
+        self.setupField(**kwargs)
+        return self.Bz0 * (1 + np.hypot(self.alpha * x, self.beta* y) -\
+        (self.gamma * np.cos(self.n * np.pi * z / self.L))) *\
+        (1 + self.eps * np.cos(np.pi * np.arctan(y/x)))
+        
+    def previewZ(self, **kwargs):
+        self.setupField(**kwargs)
+        levels = np.arange(4.2, 8.0, 0.4)
+        delta = 0.005
         x = np.arange(-0.5, 0.5, delta)
         y = 0.1
         z = np.arange(-2.0, 2.0, delta)
-        X, Z = np.meshgrid(x, z)
+        Z, X = np.meshgrid(z, x)
         F = self.zField(X, y, Z)
-        fig, ax = plt.subplots(2, 1, sharex = True)
-        CS = ax[0].contour(Z, X, F, 10)
-        plt.clabel(CS, fontsize=9, inline=1)
-        ax[0].set_xlabel('z (m)')
-        ax[0].set_ylabel('x (m)')
+        fig, ax = plt.subplots(2, 1, sharex=True)
+        CS = ax[0].contour(Z, X, F, levels)
+        plt.clabel(CS, fontsize=9, inline=1, colors='k')
+        plt.ylabel = 'x'
         x = 0.1
         y = np.arange(-0.5, 0.5, delta)
-        Y, Z = np.meshgrid(y, z)
+        Z, Y = np.meshgrid(z, y)
         F = self.zField(x, Y, Z)
-        CS = ax[1].contour(Z, Y, F, 10)
-        plt.clabel(CS, fontsize=9, inline=1)
-        ax[1].set_xlabel('z (m)')
-        ax[1].set_ylabel('y (m)')
-        #plt.show()
+        CS = ax[1].contour(Z, Y, F, levels)
+        plt.clabel(CS, fontsize=9, inline=1, colors='k')
+        plt.xlabel = 'z'
+        plt.ylabel = 'y'
+        plt.show()
 
     def varyingGammaEps(self):
         g = np.arange(0.0, 0.5, 0.1)
@@ -176,7 +195,7 @@ class TokamakField(object):
             s.outext = '.png'
             plt.savefig(s.outpath())           
             plt.close()
-
+    
 def plotField(xmin, xmax, ymin, ymax, field, delta=0.25, level=10):
     x = np.arange(xmin, xmax, delta)
     y = np.arange(ymin, ymax, delta)
@@ -186,6 +205,11 @@ def plotField(xmin, xmax, ymin, ymax, field, delta=0.25, level=10):
     plt.clabel(CS, fontsize=9, inline=1)
 
 if __name__ == '__main__':
-    field = TokamakField()
-    #field.previewZ()
-    field.varyingAlphaBeta()
+#    field = TokamakField()
+#    field.previewZ(gamma=0.2, eps=0.2)
+#    field.varyingGammaEps()
+    field = SineField()
+    field.alpha = 1.0
+    field.beta = 1.0
+    field.L = 2.0
+    field.preview()
