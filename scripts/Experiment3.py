@@ -10,16 +10,16 @@ import numpy as np
 import settings
 import magnetic as mag
 
-from SmoothSim import Smooth
+from SineSim import Sine
 
-class ExperimentSmooth(Smooth):
+class ExperimentSmooth(Sine):
     def __init__(self):
         super(ExperimentSmooth, self).__init__()
     
     def execute(self, betaStart, betaEnd, betaStep, alpha=0.5):
         beta = betaStart
         while beta < betaEnd:
-            self.simulate(alpha, beta)
+            self.simulate(alpha, beta, 2.0, 1)
             beta += betaStep
             
         for particle in self.particles:
@@ -35,12 +35,12 @@ class ExperimentSmooth(Smooth):
         beta = betaStart
         mirrors = []
         while beta < betaEnd:
-            s.outfile = self.filename(particle, alpha, beta)
+            s.outfile = self.filename(particle, alpha, beta, 2.0, 1)
             t, x, y, z = _extract(s.outpath())
             mirrors.append([ beta, np.max(z), np.min(z) ])
             beta += betaStep
             
-        s.outfile = self.filename(particle, 0, 0, 'smooth_mirrors_')
+        s.outfile = self.filename(particle, 0, 0, 0, 0, 'sine_mirrors_')
         with open(s.outpath(), 'w') as f:
             writer = csv.writer(f, delimiter=' ')
             writer.writerows(mirrors)
@@ -55,7 +55,7 @@ class ExperimentSmooth(Smooth):
         s = settings.Settings()
         
         for particle in self.particles:
-            s.outfile = self.filename(particle, 0, 0, 'smooth_mirrors_')
+            s.outfile = self.filename(particle, 0, 0, 0, 0, 'sine_mirrors_')
             with open(s.outpath()) as f:
                 beta, mx, mn = extractData(f, [0, 1, 2])
                 sym = symbols.next()
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--beta_start', default=0.1, type=float)
     parser.add_argument('--beta_end', default=1.1, type=float)
     parser.add_argument('--beta_step', default=0.1, type=float)
-    parser.add_argument('--alpha', default=0.5, type=float)
+    parser.add_argument('--alpha', default=1.0, type=float)
     
     args = parser.parse_args()
     app = ExperimentSmooth()

@@ -68,6 +68,27 @@ class AxialField(object):
         plt.xlabel('z')
         plt.ylabel('y')
         plt.show()
+        
+class SineField(object):
+    Bz0 = 4.7
+    alpha = 1.0
+    beta = 1.0
+    n = 1
+    L = 1.0
+    
+    def zField(self, x, y, z):
+        return self.Bz0 * (1 + self.alpha * np.hypot(x, y) + 
+        self.beta * z * np.sin(self.n * np.pi * z / self.L))
+        
+    def preview(self):
+        delta = 0.05
+        x = 0.0
+        y = np.arange(-2.0, 2.0, delta)
+        z = np.arange(-2.0, 2.0, delta)
+        Z, Y = np.meshgrid(z, y)
+        CS = plt.contour(Z, Y, self.zField(x, Y, Z))
+        plt.clabel(CS, fontsize=9, inline=1, colors='k')
+        plt.show()
 
 class TokamakField(object):
     Bz0 = 4.7
@@ -110,7 +131,7 @@ class TokamakField(object):
             (2 * self.L)) * np.sin(self.n * self.pi * z / self.L) * \
             (1 + self.eps * np.cos(np.pi * np.arctan(y/x)))
 
-    def fieldZ(self, x, y, z, **kwargs):
+    def zField(self, x, y, z, **kwargs):
         self.setupField(**kwargs)
         return self.Bz0 * (1 + np.hypot(self.alpha * x, self.beta* y) -\
         (self.gamma * np.cos(self.n * np.pi * z / self.L))) *\
@@ -118,13 +139,13 @@ class TokamakField(object):
         
     def previewZ(self, **kwargs):
         self.setupField(**kwargs)
-        levels = np.arange(2.0, 10.0, 1)
-        delta = 0.1
+        levels = np.arange(4.2, 8.0, 0.4)
+        delta = 0.005
         x = np.arange(-0.5, 0.5, delta)
         y = 0.1
-        z = np.arange(0.0, 2.0, delta)
+        z = np.arange(-2.0, 2.0, delta)
         Z, X = np.meshgrid(z, x)
-        F = self.fieldZ(X, y, Z)
+        F = self.zField(X, y, Z)
         fig, ax = plt.subplots(2, 1, sharex=True)
         CS = ax[0].contour(Z, X, F, levels)
         plt.clabel(CS, fontsize=9, inline=1, colors='k')
@@ -132,12 +153,12 @@ class TokamakField(object):
         x = 0.1
         y = np.arange(-0.5, 0.5, delta)
         Z, Y = np.meshgrid(z, y)
-        F = self.fieldZ(x, Y, Z)
+        F = self.zField(x, Y, Z)
         CS = ax[1].contour(Z, Y, F, levels)
         plt.clabel(CS, fontsize=9, inline=1, colors='k')
         plt.xlabel = 'z'
         plt.ylabel = 'y'
-        #plt.show()
+        plt.show()
 
     def varyingGammaEps(self):
         g = np.arange(0.0, 0.5, 0.1)
@@ -184,6 +205,11 @@ def plotField(xmin, xmax, ymin, ymax, field, delta=0.25, level=10):
     plt.clabel(CS, fontsize=9, inline=1)
 
 if __name__ == '__main__':
-    field = TokamakField()
-    #field.previewZ()
-    field.varyingAlphaBeta()
+#    field = TokamakField()
+#    field.previewZ(gamma=0.2, eps=0.2)
+#    field.varyingGammaEps()
+    field = SineField()
+    field.alpha = 1.0
+    field.beta = 1.0
+    field.L = 2.0
+    field.preview()
