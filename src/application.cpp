@@ -77,11 +77,12 @@ void Application::promptInitialCondition()
 void Application::promptSimulationParams()
 {
     // Initial time, end time and timestep
-    double t0, tend, h;
-    cin >> t0 >> tend >> h;
+    double t0, tend, h, eps;
+    cin >> t0 >> tend >> h >> eps;
     sim.setInitialTime(Quantity<second>{t0});
     sim.setEndTime(Quantity<second>{tend});
     sim.setTimestep(Quantity<second>{h});
+	sim.setTolerance(eps);
 }
 
 void Application::promptMagneticField()

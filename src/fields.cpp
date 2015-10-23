@@ -15,10 +15,10 @@ GradientZField::GradientZField(const Vector<tesla> &val, pl::dec grad)
 
 Vector<tesla> GradientZField::operator()(const Vector<meter>& position)
 {
-    auto Bx = m_B.i();
-    auto By = m_B.j();
-    auto Bz = m_B.k() * (1 + alpha * hypot(position.i(), position.j()));
-//    auto Bz = m_B.k() * (1.0 + alpha * position.i());
+	auto Bx = 0.0_tesla;
+	auto By = 0.0_tesla;
+    auto Bz = m_B.k() * (1.0 + alpha * hypot(position.i(), position.j()));
+    //auto Bz = m_B.k() * (1.0 + alpha * position.i());
     return Vector<tesla>{ Bx, By, Bz };
 }
 
@@ -49,9 +49,9 @@ SmoothZField::SmoothZField(const Quantity<tesla> &Bz0, pl::dec gradZ, pl::dec gr
 
 Vector<tesla> SmoothZField::operator()(const Vector<meter>& position)
 {
-    auto Bx = -0.5 * beta * position.i() * position.k();
-    auto By = -0.5 * beta * position.j() * position.k();
-    auto Bz = m_Bz0 * alpha * hypot(position.i(), position.j()) + beta * square(position.k());
+    auto Bx = -0.5 * m_Bz0 * beta * position.i() * position.k();
+    auto By = -0.5 * m_Bz0 * beta * position.j() * position.k();
+    auto Bz = m_Bz0 * (1.0 + alpha * hypot(position.i(), position.j()) + beta * position.k() * position.k());
     return Vector<tesla>{ Bx, By, Bz };
 }
 
@@ -154,11 +154,12 @@ SineZField::SineZField(const Quantity<tesla> &Bz0, pl::dec gradZ, pl::dec gradXY
 
 Vector<tesla> SineZField::operator()(const Vector<meter>& position)
 {
-    Quantity<gradtype> beta = m_beta * std::sin(m_n * ::pi * position.k() / m_L);
+	auto npzL = m_n * ::pi * position.k() / m_L;
+	auto rr = npzL * std::cos(npzL) + std::sin(npzL);
 
-    auto Bx = -0.5 * m_Bz0 * beta * position.i();
-    auto By = -0.5 * m_Bz0 * beta * position.j();
-    auto Bz = m_Bz0 * (1.0 + m_alpha * hypot(position.i(), position.j()) + beta * position.k());
+    auto Bx = 0.5 * m_Bz0 * m_beta * position.i() * rr;
+    auto By = 0.5 * m_Bz0 * m_beta * position.j() * rr;
+    auto Bz = m_Bz0 * (1.0 + m_alpha * hypot(position.i(), position.j()) + m_beta * position.k() * std::sin(npzL));
     return Vector<tesla>{ Bx, By, Bz };
 }
 
@@ -408,12 +409,11 @@ pl::Vector<pl::tesla> TokamakField::operator()(const pl::Vector<pl::meter>& posi
     auto teta = std::atan(y.val / x.val);
     auto Bteta = m_Bt0 * (1.0 + m_rho * r);
     auto Br = -1.0 * m_Bz0 * m_gamma * (m_n * ::pi * r / (2.0 * m_L)) * sin(m_n * ::pi * z / m_L) *
-            (1.0 + m_epsilon * cos(::pi * teta));
+            (1.0 + m_epsilon * cos(teta));
     auto Bx = Br * cos(teta) - Bteta * sin(teta);
     auto By = Br * sin(teta) + Bteta * cos(teta);
     auto Bz = m_Bz0 * (1.0 + pl::sqrt(m_alpha * pl::pow<meter, 2>(x) + m_beta * pl::pow<meter, 2>(y)) -
-                       (m_gamma * cos(m_n * ::pi * z / m_L))) *
-            (1.0 + m_epsilon * cos(::pi * teta));
+                       (m_gamma * cos(m_n * ::pi * z / m_L))) * (1.0 + m_epsilon * cos(teta));
     return Vector<tesla>{ Bx, By, Bz };
 }
 

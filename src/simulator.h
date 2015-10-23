@@ -23,6 +23,7 @@ class SimulatorData
     Quantity<kilogram> m;
     Quantity<coulomb> q;
     int pid;
+	pl::dec eps;
 public:
     SimulatorData();
 
@@ -58,6 +59,9 @@ public:
 
     void setCharge(Quantity<coulomb> charge);
     Quantity<coulomb> charge() const;
+
+	void setTolerance(pl::dec tolerance);
+	pl::dec tolerance() const;
 
     virtual void run() = 0;
     virtual std::shared_ptr<Monitor> shareMonitor() = 0;

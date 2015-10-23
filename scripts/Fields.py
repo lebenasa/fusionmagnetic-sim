@@ -60,8 +60,8 @@ class AxialField(object):
 
     def rField(self, x, y):
         return -0.5 * self.Bz0 * self.beta * np.hypot(x, y)
-    def zField(self, y, z, x=1.0):
-        return self.Bz0 * ( 1.0 + self.alpha * np.hypot(x, y) + self.beta * z )
+    def zField(self, x, y, z):
+        return self.Bz0 * ( 1.0 + self.alpha * np.hypot(x, y) + self.beta * z**2 )
 
     def preview(self):
         plotField(-1.5, 1.5, -1.5, 1.5, self.zField)
@@ -77,8 +77,12 @@ class SineField(object):
     L = 1.0
     
     def zField(self, x, y, z):
-        return self.Bz0 * (1 + self.alpha * np.hypot(x, y) + 
-        self.beta * z * np.sin(self.n * np.pi * z / self.L))
+        return self.Bz0 * (1 + self.alpha * np.hypot(x, y) - 
+        self.beta * np.cos(self.n * np.pi * z / self.L))
+
+    def rField(self, x, y, z):
+        npzL = self.n * np.pi * z / self.L
+        return -0.5 * self.Bz0 * self.beta * np.hypot(x, y) * (npzL * np.cos(npzL) + np.sin(npzL))
         
     def preview(self):
         delta = 0.05
@@ -92,7 +96,7 @@ class SineField(object):
 
 class TokamakField(object):
     Bz0 = 4.7
-    Bteta0 = 2.0
+    Bteta0 = 4.7
     alpha = 1.0
     beta = 1.0
     gamma = 1.0
@@ -129,13 +133,13 @@ class TokamakField(object):
         self.setupField(kwargs)
         return -1 * self.Bz0 * self.gamma * (self.n * np.pi * np.hypot(x, y) /\
             (2 * self.L)) * np.sin(self.n * self.pi * z / self.L) * \
-            (1 + self.eps * np.cos(np.pi * np.arctan(y/x)))
+            (1 + self.eps * np.cos(np.arctan(y/x)))
 
     def zField(self, x, y, z, **kwargs):
         self.setupField(**kwargs)
         return self.Bz0 * (1 + np.hypot(self.alpha * x, self.beta* y) -\
         (self.gamma * np.cos(self.n * np.pi * z / self.L))) *\
-        (1 + self.eps * np.cos(np.pi * np.arctan(y/x)))
+        (1 + self.eps * np.cos(np.arctan(y/x)))
         
     def previewZ(self, **kwargs):
         self.setupField(**kwargs)
@@ -158,7 +162,6 @@ class TokamakField(object):
         plt.clabel(CS, fontsize=9, inline=1, colors='k')
         plt.xlabel = 'z'
         plt.ylabel = 'y'
-        plt.show()
 
     def varyingGammaEps(self):
         g = np.arange(0.0, 0.5, 0.1)
@@ -205,11 +208,10 @@ def plotField(xmin, xmax, ymin, ymax, field, delta=0.25, level=10):
     plt.clabel(CS, fontsize=9, inline=1)
 
 if __name__ == '__main__':
-#    field = TokamakField()
-#    field.previewZ(gamma=0.2, eps=0.2)
-#    field.varyingGammaEps()
+    #field = TokamakField()
+    #field.varyingGammaEps()
     field = SineField()
     field.alpha = 1.0
     field.beta = 1.0
-    field.L = 2.0
+    field.L = 1.0
     field.preview()

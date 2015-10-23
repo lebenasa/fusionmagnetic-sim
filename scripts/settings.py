@@ -94,7 +94,8 @@ class Simulator(object):
     'fieldFreq': 0.5,
     'fieldParams1': 1.0,
     'fieldParams2': 1.0,
-    't0': 0.0, 'tend': 1.0E-6, 'h': 1.0E-9
+    't0': 0.0, 'tend': 1.0E-6, 'h': 1.0E-9,
+    'tolerance': 1.0E-6,
     }
     
     def save(self):
@@ -149,8 +150,9 @@ class Simulator(object):
             p.append(str(self.vz0))
         p.append(self.fieldCode)
         if self.fieldCode == 'Drift':
-            for val in self.fieldBaseStrength:
-                p.append(str(val))
+            p.append(str(self.fieldBaseStrength[0]))
+            p.append(str(self.fieldBaseStrength[1]))
+            p.append(str(self.fieldBaseStrength[2]))
             p.append(str(self.fieldGradient[0]))
         elif self.fieldCode == 'Smooth':
             p.append(str(self.fieldBaseStrength[0]))
@@ -191,6 +193,7 @@ class Simulator(object):
         p.append(str(self.initialTime))
         p.append(str(self.endTime))
         p.append(str(self.timeStep))
+        p.append(str(self.tolerance))
         return p
         
     @property
@@ -427,25 +430,12 @@ class Simulator(object):
         if (value > 0.0):
             self.params['h'] = value
 
+    @property
+    def tolerance(self):
+        """Tolerance value for ode-solver"""
+        return self.params['tolerance']
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    @tolerance.setter
+    def tolerance(self, value):
+        if value > 0.0:
+            self.params['tolerance'] = value

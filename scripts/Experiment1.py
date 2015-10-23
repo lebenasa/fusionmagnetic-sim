@@ -31,11 +31,11 @@ OK  5   Plot error value as a function of time, the rate of error propagation
         is the gradient of this plot
 OK  6   Answer Hypothesis 1, if the hipotesis is correct, determine the optimal
         timestep and continue
-    7   Using optimal timestep, do simulations for every other magnetic field
+OK  7   Using optimal timestep, do simulations for every other magnetic field
         profile
-    8   Using larger than the optimal timestep, do simulations for every other
+OK  8   Using larger than the optimal timestep, do simulations for every other
         magnetic profile
-    9   Verify Hypothesis 2
+OK  9   Verify Hypothesis 2
 """
 
 import numpy as np
@@ -56,26 +56,27 @@ constants = {
 class Experiment1:
     outfiles = []
     Bz0 = 4.7
-#    mass = 2.013553 * constants['atomic_mass']
-#    charge = 1.0 * constants['elementary_charge']
-    mass = 1.0 * constants['atomic_mass']
-    charge = -1.0 * constants['elementary_charge']
-    step = 0.5
-    count = 6
+    mass = 2.013553 * constants['atomic_mass']
+    charge = 1.0 * constants['elementary_charge']
+    #mass = 1.0 * constants['atomic_mass']
+    #charge = -1.0 * constants['elementary_charge']
+    step = 0.1
+    count = 5
     cdat = { }
 
     def __init__(self):
         app = mag.Application()
-        app.particleCode = 'p-'
+        app.particleCode = 'de+'
         app.fieldCode = 'Homogen'
-        app.x0 = 6.0
-        app.y0 = 6.0
-        app.z0 = 0.3
+        app.x0 = 0.0
+        app.y0 = 0.0
+        app.z0 = 0.0
         app.useKineticEnergy = True
         app.kineticEnergy = 15
         app.fieldBaseStrength = [0.0, 0.0, self.Bz0]
         app.initialTime = 0.0
-        app.endTime = 100  * self.gyro_period()
+        app.endTime = 10  * self.gyro_period()
+        app.tolerance = 1.0E-4
         app.save()
         self.gen_outfiles()
 
@@ -83,13 +84,13 @@ class Experiment1:
         return abs(self.charge) * self.Bz0 / self.mass
 
     def gyro_period(self):
-        return 1.0 / self.gyro_freq()
+        return (2 * np.pi) / self.gyro_freq()
 
     def gen_outfiles(self):
         self.outfiles = []
 
         for i in range(1, self.count):
-            self.outfiles.append('Homogen_Protide_{ct:0>2}'.format(ct=i))
+            self.outfiles.append('Fixed{ct:0>2}'.format(ct=i))
 
     def execute(self):
         import os
@@ -145,8 +146,8 @@ class Experiment1:
         rl = vr / self.gyro_freq()
         sign = np.sign(self.charge)
 
-        xg = app.x0 - rl * np.sin(phase)
-        yg = app.y0 + rl * np.cos(phase)
+        xg = app.x0 + rl * np.sin(phase)
+        yg = app.y0 - rl * np.cos(phase)
         xt = xg + rl * np.sin(self.gyro_freq() * t + (-1.0 * sign) * phase)
         yt = yg + sign * rl * np.cos(self.gyro_freq() * t + (-1.0 * sign) * phase)
         zt = app.z0 + v0[2] * t
@@ -186,8 +187,8 @@ class Experiment1:
 
         rsim = np.hypot(xsim, ysim)
         ranl = np.hypot(xanl, yanl)
-        rerr = np.abs(ranl - rsim) / ranl# / len(ranl)
-        zerr = np.abs(zanl - zsim) / zanl  # / len(zanl)
+        rerr = np.abs(ranl - rsim) # / len(ranl)
+        zerr = np.abs(zanl - zsim) # / len(zanl)
         rerr = np.cumsum(rerr)
         zerr = np.cumsum(zerr)
 
@@ -222,7 +223,7 @@ class Experiment1:
                 x = np.array(x)
                 y = np.array(y)
 #                r = np.hypot(x, y)
-                plt.plot(z, y, 'o', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
+                plt.plot(z, y, 'o--', label='{step} $\\tau_c$'.format(step=(i+1)*self.step))
 
         with open(fanl) as f:
             t, x, y, z = putil.extractData(f, [0, 1, 2, 3])
@@ -233,7 +234,7 @@ class Experiment1:
 
         plt.xlabel('z (m)')
         plt.ylabel('y (m)')
-        plt.legend(ncol=self.count / 3, loc=4, framealpha=0.5)
+        plt.legend(ncol=2, loc=4, framealpha=0.5)
         plt.tight_layout()
         plt.show()
 

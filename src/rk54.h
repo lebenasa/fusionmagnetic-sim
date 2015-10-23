@@ -12,7 +12,7 @@
 #include "simulatorlib.hpp"
 
 /*! class RK54
- * Runge-Kutta Fehlberg implementation
+ * Runge-Kutta Cash-Karp implementation
  *
  * A very specialized ODE solver, made solely for this simulation project.
  * This class is rather hard to generalize. The ODE system contains quantity
@@ -83,7 +83,8 @@ public:
             auto y4 = rk4(y);
             y5 = rk5(y);
             auto diff = y5 - y4;
-            auto crit = abs(y) + abs(h * derive(x, y));
+            auto crit = abs(y) + abs(h * derive(x, y));	// local error criteria scaling
+			//auto crit = abs(y5);							// local scaling against 5th order solution
             errMax = eps / errorMax(diff, crit);
             if (errMax >= 1.0) break;
 
@@ -167,18 +168,6 @@ private:
     dec eps = 1.0E-06;
 
     X hdid, hnext;
-
-    ::std::valarray<dec> flatify(const OdeSystem& v)
-    {
-        auto y = ::std::get<0>(v);
-        auto dy = ::std::get<1>(v);
-        std::valarray<dec> flat =
-        { y.i().val, y.j().val, y.k().val,
-          dy.i().val, dy.j().val, dy.k().val };
-//        for (auto i = 0u; i <= 6; ++i)
-//            std::cout << std::scientific << "# flat[i] " << flat[i] << "\n";
-        return flat;
-    }
 
     template < class U >
     dec max(const Vector<U>& v)

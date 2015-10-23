@@ -6,13 +6,16 @@ Created on Sun Oct  4 19:39:31 2015
 Simulate charged particle motion within magnetic field with axial gradient
 """
 import numpy as np
+import matplotlib.pyplot as plt
+from plot_utility import extractData
 import settings
 import magnetic as mag
+from Fields import AxialField
 
 class Smooth(object):    
 #    particles = [ 'e-', 'de+', 'tr+', 'p-' ]
 #    particles = ['de+', 'tr+']
-    particles = ['p-']
+    particles = ['de+']
 #    particles = [ 'de+', 'tr+', 'p-' ]
     cmaps = [ 'Reds', 'Greens', 'Blues', 'Oranges' ]
     lmaps = [ 'red', 'green', 'blue', 'orange' ]
@@ -20,15 +23,15 @@ class Smooth(object):
     def __init__(self):
         app = mag.Application()
         app.fieldCode = 'Smooth'
-        app.x0 = 0.3
-        app.y0 = 0.3
+        app.x0 = 0.5
+        app.y0 = 0.5
         app.z0 = 0.0
         app.useKineticEnergy = True
         app.kineticEnergy = 15
         app.fieldBaseStrength = [4.7]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 2.0E-4
+        app.endTime = 5.0E-5
         app.save()
         
     def simulate(self, alpha, beta):
@@ -46,19 +49,10 @@ class Smooth(object):
             app.execute()
             
     def plotSuperimposed(self, alpha, beta):
-#        import matplotlib.patches as mpatches
-        import matplotlib.pyplot as plt
-        from plot_utility import extractData
-        
         s = settings.Settings()
-#        app = mag.Application()
-        
-#        import itertools
-#        cmap = itertools.cycle(self.cmaps)
-#        lmap = itertools.cycle(self.lmaps)
-#        
-#        handles = []
-#        labels = []
+        field = AxialField()
+        field.alpha = alpha
+        field.beta = beta
         
         for particle in self.particles:
             outfile = self.filename(particle, alpha, beta)
@@ -69,33 +63,25 @@ class Smooth(object):
 #                end = len(z) / 4 + 80
                 start = 0
                 end = len(z)
-                plt.plot(z[start:end], y[start:end], 'r-', linewidth=1, label=self.label(particle))
-#                plt.scatter(z[start:end], R[start:end], c=t[start:end], cmap=cmap.next())
-#                handles.append(mpatches.Patch(color=lmap.next()))
-#                labels.append(self.label(particle))
+                plt.plot(z[start:end], y[start:end], 'b-', linewidth=1, label=self.label(particle))
+                self.plotField(field, -2.5, 2.5, -1.5, 1.5)
                     
         plt.xlabel('z (m)')
         plt.ylabel('y (m)')
-#        plt.legend(handles, labels, ncol=1, loc=4, framealpha=0.5)
-#        plt.legend(ncol=1, loc=4, framealpha=0.5)
         plt.tight_layout()
         plt.show()
         
+    def plotField(self, field, xmin, xmax, ymin, ymax, res=1000):
+        XX = np.arange(xmin, xmax, (xmax-xmin)/res)
+        YY = np.arange(ymin, ymax, (ymax-ymin)/res)
+        Z, Y = np.meshgrid(XX, YY)
+        CS = plt.contour(Z, Y, field.zField(0.5, Y, Z))
+        plt.clabel(CS, fontsize=9, inline=1, colors='k')
+
     def execute(self, alpha, beta):
         self.simulate(alpha, beta)
         self.plotSuperimposed(alpha, beta)
         
-#        s = settings.Settings()
-#        outs = []
-#        for particle in self.particles:
-#            s.outfile =  self.filename(particle, alpha, beta)
-#            outs.append(s.outpath())
-#        
-#        import plot_probe as pb
-#        app = pb.ProberApp(outs, self.particles)
-#        app.execute()
-            
-            
     def fileSuffix(self, particle):
         if particle == 'e-':
             return 'electron'

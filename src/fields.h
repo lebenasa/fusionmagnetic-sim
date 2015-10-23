@@ -24,7 +24,7 @@ public:
 class SmoothZField
 {
     using alphatype = pl::Unit_minus<pl::dimless, pl::meter>;
-    using betatype = pl::Unit_minus<pl::tesla, pl::Unit_plus<pl::meter, pl::meter>>;
+	using betatype = pl::Unit_minus<pl::dimless, pl::Unit_plus<pl::meter, pl::meter>>;
     pl::Quantity<alphatype> alpha;
     pl::Quantity<betatype> beta;
     pl::Quantity<pl::tesla> m_Bz0;

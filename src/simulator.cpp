@@ -29,7 +29,7 @@ Quantity<kelvin> toTemperature(Quantity<keV> e)
 
 // SimulatorData implementation
 SimulatorData::SimulatorData()
-    : h{ 1.0E-12 }, t0{ 0.0 }, tend{ 1.0 }
+    : h{ 1.0E-12 }, t0{ 0.0 }, tend{ 1.0 }, eps{ 1.0E-6 }
 {
     bField = UniformField<tesla>{ };
 }
@@ -177,6 +177,16 @@ void SimulatorData::setCharge(Quantity<coulomb> charge)
 Quantity<coulomb> SimulatorData::charge() const
 {
     return q;
+}
+
+void SimulatorData::setTolerance(pl::dec tol)
+{
+	eps = tol;
+}
+
+pl::dec SimulatorData::tolerance() const
+{
+	return eps;
 }
 
 // Monitor implementation
@@ -352,6 +362,8 @@ Quantity<second> SimulatorRK54::time() const
     return t;
 }
 
+//#define FIXED_STEPSIZE
+
 void SimulatorRK54::run()
 {
     auto stall = chrono::milliseconds{ 10 };
@@ -372,8 +384,7 @@ void SimulatorRK54::run()
 
     v = initialVelocity();
     r = initialPosition();
-    t = initialTime();
-    for ( ; t < endTime(); )
+    for (t = initialTime(); t < endTime(); )
     {
         if (monitor->isFull())
             stallSimulation();
@@ -381,18 +392,23 @@ void SimulatorRK54::run()
         pushData();
 
         auto y = OdeSystem{ r, v };
-        auto odesys = solver( t, y, timestep(), derive, 1.0E-05 );
-//        solver.calculateK(t, y, timestep(), derive);
-//        auto odesys = solver.rk5(y);
-        r = std::get<0>(odesys);
-        v = std::get<1>(odesys);
 
+#ifdef FIXED_STEPSIZE
+        solver.calculateK(t, y, timestep(), derive);
+        auto odesys = solver.rk5(y);
+        t += timestep();
+#else
+        auto odesys = solver( t, y, timestep(), derive, tolerance() );
         t += solver.stepUsed();
+
         if (t + solver.stepSuggested() > endTime())
             setTimestep(endTime() - t);
         else
             setTimestep(solver.stepSuggested());
-//        t += timestep();
+#endif
+
+        r = std::get<0>(odesys);
+        v = std::get<1>(odesys);
     }
     pushData();
     monitor->callback();
