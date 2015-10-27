@@ -58,15 +58,15 @@ class Experiment1:
     Bz0 = 4.7
     mass = 2.013553 * constants['atomic_mass']
     charge = 1.0 * constants['elementary_charge']
-    #mass = 1.0 * constants['atomic_mass']
-    #charge = -1.0 * constants['elementary_charge']
-    step = 0.1
+    mass = 1.0 * constants['atomic_mass']
+    charge = -1.0 * constants['elementary_charge']
+    step = 0.01
     count = 5
     cdat = { }
 
     def __init__(self):
         app = mag.Application()
-        app.particleCode = 'de+'
+        app.particleCode = 'p-'
         app.fieldCode = 'Homogen'
         app.x0 = 0.0
         app.y0 = 0.0
@@ -75,7 +75,7 @@ class Experiment1:
         app.kineticEnergy = 15
         app.fieldBaseStrength = [0.0, 0.0, self.Bz0]
         app.initialTime = 0.0
-        app.endTime = 10  * self.gyro_period()
+        app.endTime = 20  * self.gyro_period()
         app.tolerance = 1.0E-4
         app.save()
         self.gen_outfiles()
@@ -90,7 +90,7 @@ class Experiment1:
         self.outfiles = []
 
         for i in range(1, self.count):
-            self.outfiles.append('Fixed{ct:0>2}'.format(ct=i))
+            self.outfiles.append('Adaptive{ct:0>2}'.format(ct=i))
 
     def execute(self):
         import os
@@ -189,13 +189,17 @@ class Experiment1:
         ranl = np.hypot(xanl, yanl)
         rerr = np.abs(ranl - rsim) # / len(ranl)
         zerr = np.abs(zanl - zsim) # / len(zanl)
-        rerr = np.cumsum(rerr)
-        zerr = np.cumsum(zerr)
+        #rerr = np.cumsum(rerr)
+        #zerr = np.cumsum(zerr)
 
         with open(fout, 'w') as f:
             writer = csv.writer(f, delimiter=' ')
             for i in xrange(len(tlist)):
                 writer.writerow([tlist[i], rerr[i], zerr[i]])
+            writer.writerow(['# Mean r err: ', np.mean(rerr)])
+            writer.writerow(['# Mean r stdev: ', np.var(rerr)])
+            writer.writerow(['# Mean z err: ', np.mean(zerr)])
+            writer.writerow(['# Mean z stdev: ', np.var(zerr)])
 
     def errorPlots(self):
         """Plot errors to answer hypothesis
@@ -232,8 +236,8 @@ class Experiment1:
 #            r = np.hypot(x, y)
             plt.plot(z, y, 'k-', linewidth=1.5, label='Analytic')
 
-        plt.xlabel('z (m)')
-        plt.ylabel('y (m)')
+        plt.xlabel('$z$ (m)')
+        plt.ylabel('$y$ (m)')
         plt.legend(ncol=2, loc=4, framealpha=0.5)
         plt.tight_layout()
         plt.show()

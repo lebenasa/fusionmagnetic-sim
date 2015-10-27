@@ -19,15 +19,16 @@ class Tokamak(object):
 #    particles = [ 'de+', 'tr+', 'p-' ]
     cmaps = [ 'Blues', 'Greens', 'Reds', 'Oranges' ]
     lmaps = [ 'blue', 'green', 'red', 'orange' ]
+    style = { 'de+': 'b-', 'tr+': 'g-', 'p-': 'm-', 'e-': 'k-' }
 
     def __init__(self):
         app = mag.Application()
         app.fieldCode = 'Tokamak'
         app.x0 = 0.1
         app.y0 = 0.1
-        app.z0 = 0.005
+        app.z0 = 0.0
         app.useKineticEnergy = True
-        app.kineticEnergy = 1
+        app.kineticEnergy = 15
         #app.useKineticEnergy = False
         #app.vx0 = 1.0E06
         #app.vy0 = 1.0E06
@@ -35,7 +36,8 @@ class Tokamak(object):
         app.fieldBaseStrength = [4.7, 4.7]
         app.initialTime = 0.0
         app.timeStep = 1.0E-9
-        app.endTime = 1.0E-5
+        app.endTime = 5.0E-6
+        app.tolerance = 1.0E-5
         app.save()
         
     def simulate(self, alpha, beta, gamma, eps, rho, L, n):
@@ -53,122 +55,52 @@ class Tokamak(object):
             app.save()
             app.execute()
             
-    def plotSuperimposed(self, alpha, beta, gamma, eps, rho, L, n):
-        s = settings.Settings()
-        fig, ax = plt.subplots(2, 2)
-        right, front, top, _ = np.ravel(ax)
-
-        field = Fields.TokamakField()
-        field.setupField(alpha=alpha, beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
-        
-        for particle in self.particles:
-            s.outfile = self.filename(particle, alpha, beta, gamma, eps, rho, L, n)
-            with open(s.outpath()) as f:
-                t, x, y, z = extractData(f, [0, 1, 2, 3])
-                front.plot(x, y, '-g', label=self.label(particle))
-                front.set_xlabel('x')
-                front.set_ylabel('y')
-                #min, max = front.get_xlim()
-                min, max = [-0.5, 0.5]
-                levels = np.arange(4.2, 6.3, 0.4)
-                XX = np.arange(min, max, (max-min)/100)
-                #min, max = front.get_ylim()
-                YY = np.arange(min, max, (max-min)/100)
-                X, Y = np.meshgrid(XX, YY)
-                Z = 0.1
-                F = field.zField(X, Y, Z)
-                CS = front.contour(X, Y, F, levels)
-                plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                top.plot(z, y, '-g', label=self.label(particle))
-                top.set_xlabel('z')
-                top.set_ylabel('y')
-                #min, max = top.get_xlim()
-                min, max = [-2.0, 2.0]
-                ZZ = np.arange(min, max, (max-min)/100)
-                #min, max = top.get_ylim()
-                min, max = [-0.5, 0.5]
-                YY = np.arange(min, max, (max-min)/100)
-                Z, Y = np.meshgrid(ZZ, YY)
-                X = 0.1
-                F = field.zField(X, Y, Z)
-                CS = top.contour(Z, Y, F, levels)
-                plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                right.plot(z, x, '-g', label=self.label(particle))
-                right.set_xlabel('z')
-                right.set_ylabel('x')
-                #min, max = right.get_xlim()
-                min, max = [-2.0, 2.0]
-                ZZ = np.arange(min, max, (max-min)/100)
-                #min, max = right.get_ylim()
-                min, max = [-0.5, 0.5]
-                XX = np.arange(min, max, (max-min)/100)
-                Z, X = np.meshgrid(ZZ, XX)
-                Y = 0.1
-                F = field.zField(X, Y, Z)
-                CS = right.contour(Z, X, F, levels)
-                plt.clabel(CS, fontsize=9, colors='k', inline=1)
-        plt.tight_layout()
-        plt.show()
              
-    def plotSuperimposed2(self, alpha, beta, gamma, eps, rho, L, n):
-        from mpl_toolkits.mplot3d import Axes3D
-        
+    def plotSuperimposed(self, alpha, beta, gamma, eps, rho, L, n, particle):
         s = settings.Settings()
 
         field = Fields.TokamakField()
         field.setupField(alpha=alpha, beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
 
-        for particle in self.particles:
-            s.outfile = self.filename(particle, alpha, beta, gamma, eps, rho, L, n)
-            with open(s.outpath()) as f:
-                t, x, y, z = extractData(f, [0, 1, 2, 3])
-                plt.plot(x, y, '-b', label=self.label(particle))
-                plt.xlabel('x')
-                plt.ylabel('y')
-                #min, max = front.get_xlim()
-                min, max = [-0.5, 0.5]
-                levels = np.arange(4.2, 6.3, 0.4)
-                XX = np.arange(min, max, (max-min)/1000)
-                #min, max = front.get_ylim()
-                YY = np.arange(min, max, (max-min)/1000)
-                X, Y = np.meshgrid(XX, YY)
-                Z = 0.1
-                F = field.zField(X, Y, Z)
-                CS = plt.contour(X, Y, F, levels)
-                plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                plt.show()
-                plt.close()
-                plt.plot(z, y, '-b', label=self.label(particle))
-                plt.xlabel('z')
-                plt.ylabel('y')
-                #min, max = top.get_xlim()
-                min, max = [-2.0, 2.0]
-                ZZ = np.arange(min, max, (max-min)/1000)
-                #min, max = top.get_ylim()
-                min, max = [-0.5, 0.5]
-                YY = np.arange(min, max, (max-min)/1000)
-                Z, Y = np.meshgrid(ZZ, YY)
-                X = 0.1
-                F = field.zField(X, Y, Z)
-                CS = plt.contour(Z, Y, F, levels)
-                plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                plt.show()
-                plt.close()
-                plt.plot(z, x, '-b', label=self.label(particle))
-                plt.xlabel('z')
-                plt.ylabel('x')
-                #min, max = right.get_xlim()
-                min, max = [-2.0, 2.0]
-                ZZ = np.arange(min, max, (max-min)/1000)
-                #min, max = right.get_ylim()
-                min, max = [-0.5, 0.5]
-                XX = np.arange(min, max, (max-min)/1000)
-                Z, X = np.meshgrid(ZZ, XX)
-                Y = 0.1
-                F = field.zField(X, Y, Z)
-                CS = plt.contour(Z, X, F, levels)
-                plt.clabel(CS, fontsize=9, colors='k', inline=1)
-                plt.show()
+        s.outfile = self.filename(particle, alpha, beta, gamma, eps, rho, L, n)
+        with open(s.outpath()) as f:
+            t, x, y, z = extractData(f, [0, 1, 2, 3])
+            
+            plt.plot(x, y, self.style[particle], label=self.label(particle))
+            plt.xlabel('$x$ m')
+            plt.ylabel('$y$ m')
+            xmin, xmax = [ -0.5, 0.5 ]
+            ymin, ymax = [ -0.5, 0.5 ]
+#            xmin, xmax = plt.xlim()
+#            ymin, ymax = plt.ylim()
+            self.plotField(field, xmin, xmax, ymin, ymax, orientation='front')
+            s.outext = '_front.pdf'
+            plt.savefig(s.outpath())
+            plt.show()
+            
+            plt.plot(z, y, self.style[particle], label=self.label(particle))
+            plt.xlabel('$z$ m')
+            plt.ylabel('$y$ m')
+            xmin, xmax = [ -0.5, 0.5 ]
+            ymin, ymax = [ -0.5, 0.5 ]
+#            xmin, xmax = plt.xlim()
+#            ymin, ymax = plt.ylim()
+            self.plotField(field, xmin, xmax, ymin, ymax, orientation='right')
+            s.outext = '_right.pdf'
+            plt.savefig(s.outpath())
+            plt.show()
+    
+    def plotField(self, field, xmin, xmax, ymin, ymax, res=1000, orientation='front'):
+        XX = np.arange(xmin, xmax, (xmax-xmin)/res)
+        YY = np.arange(ymin, ymax, (ymax-ymin)/res)
+        if orientation == 'front':
+            X, Y = np.meshgrid(XX, YY)
+            CS = plt.contour(X, Y, field.zField(X, Y, 0.0), cmap='autumn_r')
+            plt.clabel(CS, fontsize=9, inline=1, colors='k')
+        elif orientation == 'right':
+            Z, Y = np.meshgrid(XX, YY)
+            CS = plt.contour(Z, Y, field.zField(0.1, Y, Z), cmap='autumn_r')
+            plt.clabel(CS, fontsize=9, inline=1, colors='k')
         
     def plot3d(self, alpha, beta, gamma, eps, rho, L, n):
         from mpl_toolkits.mplot3d import Axes3D
@@ -230,9 +162,11 @@ class Tokamak(object):
     def execute(self, alpha, beta, gamma, eps, rho, L, n, animate):
         self.simulate(alpha, beta, gamma, eps, rho, L, n)
         if animate:
-            self.animate(alpha, beta, gamma, eps, rho, L, n)
+            for particle in self.particles:
+                self.animate(alpha, beta, gamma, eps, rho, L, n, particle=particle)
         else:
-            self.plotSuperimposed2(alpha, beta, gamma, eps, rho, L, n)
+            for particle in self.particles:
+                self.plotSuperimposed(alpha, beta, gamma, eps, rho, L, n, particle=particle)
             
     def fileSuffix(self, particle):
         if particle == 'e-':
@@ -254,10 +188,11 @@ class Tokamak(object):
         elif particle == 'p-':
             return '$H^-$'
             
-    def filename(self, particle, alpha, beta, gamma, eps, rho, L, n, prefix='tokamak_banana_'):
+    def filename(self, particle, alpha, beta, gamma, eps, rho, L, n, prefix='tokamak_'):
         return prefix + self.fileSuffix(particle) + \
-        '_{alpha:>02}_{beta:>02}_{gamma:>02}_{eps:>02}_{rho:>02}_{L:>02}_{n:>02}'.format(alpha=alpha, \
-        beta=beta, gamma=gamma, eps=eps, rho=rho, L=L, n=n)
+        '_{alpha:>02}_{beta:>02}_{gamma:>02}_{eps:>02}_{rho:>02}_{L:>02}_{n:>02}'.format(
+        alpha=int(alpha*10), beta=int(beta*10), gamma=int(gamma*10), eps=int(eps*10), 
+        rho=int(rho*10), L=int(L*10), n=int(n*10))
 
 if __name__ == '__main__':  
     import argparse as ap

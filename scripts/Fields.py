@@ -34,7 +34,7 @@ class RadialField(object):
     def zField(self, x, y):
         return self.Bz0 * ( 1 + self.alpha * ( np.hypot(x, y) ) )
 
-class AxialField(object):
+class SmoothField(object):
     _alpha = 0.5
     _beta = 0.5
     _Bz0 = 4.7
@@ -58,8 +58,6 @@ class AxialField(object):
     def Bz0(self, value):
         self._Bz0 = value
 
-    def rField(self, x, y):
-        return -0.5 * self.Bz0 * self.beta * np.hypot(x, y)
     def zField(self, x, y, z):
         return self.Bz0 * ( 1.0 + self.alpha * np.hypot(x, y) + self.beta * z**2 )
 
@@ -77,7 +75,7 @@ class SineField(object):
     L = 1.0
     
     def zField(self, x, y, z):
-        return self.Bz0 * (1 + self.alpha * np.hypot(x, y) - 
+        return self.Bz0 * (2 + self.alpha * np.hypot(x, y) - 
         self.beta * np.cos(self.n * np.pi * z / self.L))
 
     def rField(self, x, y, z):
@@ -93,6 +91,22 @@ class SineField(object):
         CS = plt.contour(Z, Y, self.zField(x, Y, Z))
         plt.clabel(CS, fontsize=9, inline=1, colors='k')
         plt.show()
+        
+class SharpField(object):
+    Bz0 = 4.7
+    alpha = 1.0
+    beta = 1.0
+    L = 1.0
+    
+    def betaMax(self, z):
+        if z <= -1.0 * self.L:
+            return -1.0 * self.beta
+        elif z >= self.L:
+            return self.beta
+        return 0.0
+    
+    def zField(self, x, y, betaz):
+        return self.Bz0 * (1 + self.alpha * np.hypot(x, y) + betaz)
 
 class TokamakField(object):
     Bz0 = 4.7
@@ -162,6 +176,23 @@ class TokamakField(object):
         plt.clabel(CS, fontsize=9, inline=1, colors='k')
         plt.xlabel = 'z'
         plt.ylabel = 'y'
+        
+    def preview3d(self, **kwargs):
+        from mpl_toolkits.mplot3d import Axes3D
+        
+        self.setupField(**kwargs)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        
+        res = 1000
+        X = np.arange(-0.5, 0.5, 1.0/res)
+        Y = np.arange(-0.5, 0.5, 1.0/res)
+
+        x, y, = np.meshgrid(X, Y)
+        
+        CS = ax.contour(x, y, self.zField(0.1, y, x), cmap='autumn_r')
+        plt.clabel(CS, fontsize=9, inline=1, colors='k')
+        plt.show()
 
     def varyingGammaEps(self):
         g = np.arange(0.0, 0.5, 0.1)
@@ -198,6 +229,34 @@ class TokamakField(object):
             s.outext = '.png'
             plt.savefig(s.outpath())           
             plt.close()
+            
+    def varyingZ(self):
+        from os import path, mkdir
+        
+        res = 1000
+        X = np.arange(-0.5, 0.5, 1.0/res)
+        Y = np.arange(-0.5, 0.5, 1.0/res)
+        Z = np.arange(-0.5, 0.6, 0.1)
+        x, y = np.meshgrid(X, Y)
+        
+        s = settings.Settings()
+        s.outdir = path.join(s.outdir, 'TokamakField_z')
+        if not path.exists(s.outdir):
+            mkdir(s.outdir)
+        s.outfile = 'tokamakfield_{alpha}_{beta}_{gamma}_{eps}_{rho}'.format(
+        alpha=self.alpha, beta=self.beta, gamma=self.gamma, eps=self.eps, rho=self.rho)
+        levels = [ 6, 10, 14, 18, 22 ]
+        
+        for z in Z:
+            CS = plt.contour(x, y, self.zField(x, y, z), levels=levels, cmap='autumn_r')
+            plt.clabel(CS, fontsize=9, inline=1, colors='k')
+            plt.xlabel = '$x$ m'
+            plt.ylabel = '$y$ m'
+            s.outext = '_{z:>02}.png'.format(z=int(10*z + 5))
+            plt.savefig(s.outpath())
+            s.outext = '_{z:>02}.pdf'.format(z=int(10*z + 5))
+            plt.savefig(s.outpath())
+            plt.close()
     
 def plotField(xmin, xmax, ymin, ymax, field, delta=0.25, level=10):
     x = np.arange(xmin, xmax, delta)
@@ -208,10 +267,28 @@ def plotField(xmin, xmax, ymin, ymax, field, delta=0.25, level=10):
     plt.clabel(CS, fontsize=9, inline=1)
 
 if __name__ == '__main__':
-    #field = TokamakField()
-    #field.varyingGammaEps()
-    field = SineField()
-    field.alpha = 1.0
-    field.beta = 1.0
-    field.L = 1.0
-    field.preview()
+    import argparse as ap
+    parser = ap.ArgumentParser(description='Simulation for magnetic field with tokamak-like shape')
+    parser.add_argument('--alpha', default=1.0, type=float)
+    parser.add_argument('--beta', default=1.0, type=float)
+    parser.add_argument('--gamma', default=1.0, type=float)
+    parser.add_argument('--eps', default=1.0, type=float)
+    parser.add_argument('--rho', default=1.0, type=float)
+    parser.add_argument('--length', default=1.0, type=float)
+    parser.add_argument('--freq', default=1, type=float)
+    parser.add_argument('--bz', default=4.7, type=float)
+    parser.add_argument('--bt', default=4.7, type=float)
+    
+    args = parser.parse_args()
+    
+    field = TokamakField()
+    field.setupField(alpha=args.alpha, beta=args.beta, gamma=args.gamma, eps=args.eps,\
+                     rho=args.rho, L=args.length, n=args.freq, Bz0=args.bz, Bteta0=args.bt)
+#    field.varyingZ()
+    field.preview3d()
+#    field.varyingGammaEps()
+#    field = SineField()
+#    field.alpha = 1.0
+#    field.beta = 1.0
+#    field.L = 1.0
+#    field.preview()

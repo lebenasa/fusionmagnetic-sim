@@ -70,7 +70,7 @@ class SineZField
     using gradtype = pl::Unit_minus<pl::dimless, pl::meter>;
     pl::Quantity<pl::tesla> m_Bz0;
     pl::Quantity<gradtype> m_alpha;
-    pl::Quantity<gradtype> m_beta;
+    pl::dec m_beta;
     pl::Quantity<pl::meter> m_L;
     pl::dec m_n;
 public:
@@ -84,7 +84,7 @@ public:
     void setAlpha(const pl::dec& v);
     pl::Quantity<gradtype> alpha() const;
     void setBetaMax(const pl::dec& v);
-    pl::Quantity<gradtype> betaMax() const;
+    pl::dec betaMax() const;
     void setL(const pl::dec& L);
     pl::Quantity<pl::meter> L() const;
     void setN(const pl::dec& n);

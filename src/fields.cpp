@@ -154,12 +154,11 @@ SineZField::SineZField(const Quantity<tesla> &Bz0, pl::dec gradZ, pl::dec gradXY
 
 Vector<tesla> SineZField::operator()(const Vector<meter>& position)
 {
-	auto npzL = m_n * ::pi * position.k() / m_L;
-	auto rr = npzL * std::cos(npzL) + std::sin(npzL);
+	auto npL = m_n * ::pi / m_L;
 
-    auto Bx = 0.5 * m_Bz0 * m_beta * position.i() * rr;
-    auto By = 0.5 * m_Bz0 * m_beta * position.j() * rr;
-    auto Bz = m_Bz0 * (1.0 + m_alpha * hypot(position.i(), position.j()) + m_beta * position.k() * std::sin(npzL));
+    auto Bx = -0.5 * m_Bz0 * m_beta * npL * position.i() * std::sin(npL * position.k());
+    auto By = -0.5 * m_Bz0 * m_beta * npL * position.j() * std::sin(npL * position.k());
+    auto Bz = m_Bz0 * (2.0 + m_alpha * hypot(position.i(), position.j()) - 1.0 * m_beta * std::cos(npL * position.k()));
     return Vector<tesla>{ Bx, By, Bz };
 }
 
@@ -185,10 +184,10 @@ Quantity<SineZField::gradtype> SineZField::alpha() const
 
 void SineZField::setBetaMax(const pl::dec& v)
 {
-    m_beta = make_quantity<gradtype>(v);
+    m_beta = v;
 }
 
-Quantity<SineZField::gradtype> SineZField::betaMax() const
+pl::dec SineZField::betaMax() const
 {
     return m_beta;
 }
